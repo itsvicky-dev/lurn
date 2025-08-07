@@ -1,0 +1,910 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@300;400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Light theme - Sophisticated warm palette */
+    --background: 48 25% 96%;     /* Warm off-white #f8f6f1 */
+    --foreground: 24 10% 10%;     /* Warm dark text */
+    --card: 48 30% 98%;           /* Slightly warmer card background */
+    --card-foreground: 24 10% 10%;
+    --popover: 48 30% 98%;
+    --popover-foreground: 24 10% 10%;
+    --primary: 258 75% 65%;       /* Purple violet #7244e2 */
+    --primary-foreground: 24 10% 10%;  /* Dark text on primary */
+    --secondary: 40 15% 88%;      /* Warm light gray */
+    --secondary-foreground: 24 10% 10%;
+    --muted: 40 20% 92%;          /* Very light warm gray */
+    --muted-foreground: 24 8% 46%; /* Medium warm gray text */
+    --accent: 35 45% 72%;         /* Elegant cream #e8c488 */
+    --accent-foreground: 24 10% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 40 20% 88%;         /* Warm border */
+    --input: 48 25% 97%;          /* Input background */
+    --ring: 258 75% 65%;          /* Focus ring matches primary */
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    /* Dark theme - Sophisticated dark grays with warm accents */
+    --background: 220 8% 8%;      /* Slightly warm dark gray */
+    --foreground: 40 5% 92%;      /* Warm light text */
+    --card: 220 8% 11%;           /* Dark card background */
+    --card-foreground: 40 5% 92%;
+    --popover: 220 8% 9%;         /* Popover background */
+    --popover-foreground: 40 5% 92%;
+    --primary: 258 75% 65%;       /* Purple violet #7244e2 */
+    --primary-foreground: 220 8% 8%; /* Dark text on primary */
+    --secondary: 220 6% 18%;      /* Medium dark gray */
+    --secondary-foreground: 40 5% 88%;
+    --muted: 220 6% 15%;          /* Muted dark gray */
+    --muted-foreground: 40 4% 65%; /* Medium gray text */
+    --accent: 35 45% 72%;         /* Elegant cream accent */
+    --accent-foreground: 220 8% 8%; /* Dark text on accent */
+    --destructive: 0 62.8% 50%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 220 6% 22%;         /* Subtle border */
+    --input: 220 8% 13%;          /* Input background */
+    --ring: 258 75% 65%;          /* Focus ring */
+  }
+
+  .metallic-chic {
+    /* Metallic Chic theme - Premium dark with sophisticated accents */
+    --background: 220 8% 6%;
+    --foreground: 40 5% 95%;
+    --card: 220 8% 9%;
+    --card-foreground: 40 5% 95%;
+    --popover: 220 8% 7%;
+    --popover-foreground: 40 5% 95%;
+    --primary: 258 75% 65%;       /* Sophisticated purple violet */
+    --primary-foreground: 220 8% 6%;
+    --secondary: 220 6% 16%;
+    --secondary-foreground: 40 5% 88%;
+    --muted: 220 6% 12%;
+    --muted-foreground: 40 4% 68%;
+    --accent: 35 45% 72%;         /* Elegant cream accent */
+    --accent-foreground: 220 8% 6%;
+    --destructive: 0 75% 65%;
+    --destructive-foreground: 220 8% 6%;
+    --border: 220 6% 18%;
+    --input: 220 8% 10%;
+    --ring: 258 75% 65%;
+    
+    /* Metallic specific variables */
+    --metallic-silver: 40 5% 85%;
+    --metallic-chrome: 40 5% 75%;
+    --metallic-platinum: 40 5% 90%;
+    --metallic-steel: 40 5% 60%;
+    --metallic-gunmetal: 220 6% 25%;
+    --metallic-accent: 258 75% 65%;
+    --glass-bg: 220 8% 9% / 0.8;
+    --glass-border: 40 5% 95% / 0.1;
+  }
+
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground font-robotic;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+  
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Cyberpunk scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-secondary-100 dark:bg-secondary-800;
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-primary-400 hover:bg-primary-500;
+    border-radius: 4px;
+    box-shadow: 0 0 10px rgba(114, 68, 226, 0.25);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    box-shadow: 0 0 15px rgba(114, 68, 226, 0.35);
+  }
+
+  /* Selection styling */
+  ::selection {
+    @apply bg-primary-500/20 text-primary-900;
+  }
+
+  /* Focus ring styling */
+  :focus-visible {
+    @apply outline-none ring-2 ring-primary-500 ring-offset-2 ring-offset-background;
+  }
+}
+
+@layer components {
+  /* Cyberpunk Button Styles */
+  .btn {
+    @apply inline-flex items-center justify-center rounded-lg text-sm font-medium font-robotic tracking-wide transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background relative overflow-hidden;
+  }
+  
+  .btn-primary {
+    @apply btn bg-gradient-to-r from-primary-600 to-primary-700 text-white hover:from-primary-700 hover:to-primary-800 active:from-primary-800 active:to-primary-900 shadow-glow hover:shadow-glow-lg transform hover:scale-105 active:scale-95;
+  }
+  
+  .btn-secondary {
+    @apply btn bg-card text-card-foreground border border-border hover:bg-accent-semantic hover:text-accent-foreground shadow-md hover:shadow-lg transform hover:scale-105 active:scale-95;
+  }
+  
+  .btn-outline {
+    @apply btn border-2 border-primary-500 bg-transparent text-primary-600 dark:text-primary-400 hover:bg-primary-500 hover:text-white hover:shadow-glow transform hover:scale-105 active:scale-95;
+  }
+  
+  .btn-ghost {
+    @apply btn hover:bg-accent-semantic hover:text-accent-foreground transform hover:scale-105 active:scale-95;
+  }
+  
+  .btn-cyber {
+    @apply btn bg-gradient-to-r from-primary-600 via-accent-500 to-primary-600 bg-size-200 animate-gradient-x text-white shadow-cyber hover:shadow-neon transform hover:scale-105 active:scale-95;
+  }
+
+  /* Metallic Chic Button Styles */
+  .metallic-chic .btn-primary {
+    @apply btn text-black relative overflow-hidden;
+    background: linear-gradient(135deg, 
+      hsl(258 75% 60%) 0%, 
+      hsl(258 75% 65%) 50%, 
+      hsl(258 75% 70%) 100%);
+    box-shadow: 
+      0 4px 16px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2),
+      0 0 0 1px rgba(0, 0, 0, 0.1);
+  }
+
+  .metallic-chic .btn-primary::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, 
+      transparent, 
+      rgba(255, 255, 255, 0.3), 
+      transparent);
+    transition: left 0.6s ease;
+  }
+
+  .metallic-chic .btn-primary:hover::before {
+    left: 100%;
+  }
+
+  .metallic-chic .btn-primary:hover {
+    transform: translateY(-1px) scale(1.02);
+    box-shadow: 
+      0 6px 20px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3),
+      0 0 0 1px rgba(114, 68, 226, 0.4);
+  }
+
+  .metallic-chic .btn-secondary {
+    @apply btn relative overflow-hidden;
+    background: linear-gradient(135deg, 
+      hsl(var(--card)) 0%, 
+      hsl(220 13% 15%) 100%);
+    color: hsl(var(--card-foreground));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 
+      0 4px 16px rgba(0, 0, 0, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+
+  .metallic-chic .btn-secondary:hover {
+    transform: translateY(-1px);
+    background: linear-gradient(135deg, 
+      hsl(220 6% 15%) 0%, 
+      hsl(220 6% 18%) 100%);
+    border-color: rgba(114, 68, 226, 0.25);
+    box-shadow: 
+      0 6px 20px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  }
+  
+  .btn-sm {
+    @apply h-8 px-3 text-xs;
+  }
+  
+  .btn-md {
+    @apply h-10 px-4 py-2;
+  }
+  
+  .btn-lg {
+    @apply h-12 px-8 text-base;
+  }
+  
+  /* Futuristic Input Styles */
+  .input {
+    @apply flex h-10 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm font-robotic ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:shadow-glow-sm disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-300;
+  }
+  
+  .textarea {
+    @apply flex min-h-[80px] w-full rounded-lg border border-border bg-background px-3 py-2 text-sm font-robotic ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:shadow-glow-sm disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-300;
+  }
+
+  /* Metallic Chic Input Styles */
+  .metallic-chic .input {
+    background: linear-gradient(135deg, 
+      hsl(var(--input)) 0%, 
+      hsl(220 13% 12%) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 
+      inset 0 2px 4px rgba(0, 0, 0, 0.3),
+      0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  .metallic-chic .input:focus-visible {
+    border-color: rgba(114, 68, 226, 0.4);
+    box-shadow: 
+      inset 0 2px 4px rgba(0, 0, 0, 0.3),
+      0 0 0 2px rgba(114, 68, 226, 0.15),
+      0 0 20px rgba(114, 68, 226, 0.08);
+  }
+
+  .metallic-chic .textarea {
+    background: linear-gradient(135deg, 
+      hsl(var(--input)) 0%, 
+      hsl(220 13% 12%) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 
+      inset 0 2px 4px rgba(0, 0, 0, 0.3),
+      0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  .metallic-chic .textarea:focus-visible {
+    border-color: rgba(114, 68, 226, 0.4);
+    box-shadow: 
+      inset 0 2px 4px rgba(0, 0, 0, 0.3),
+      0 0 0 2px rgba(114, 68, 226, 0.15),
+      0 0 20px rgba(114, 68, 226, 0.08);
+  }
+  
+  /* Enhanced Card Styles */
+  .card {
+    @apply rounded-xl border border-border bg-card text-card-foreground shadow-lg backdrop-blur-sm relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:shadow-primary-500/10;
+  }
+  
+  .card::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-br from-primary-500/5 to-transparent pointer-events-none;
+  }
+  
+  .card-cyber {
+    @apply card border-primary-500/30 shadow-cyber hover:shadow-neon hover:border-primary-400/50;
+  }
+
+  /* Metallic Chic Card Styles */
+  .metallic-chic .card {
+    @apply bg-card/90 backdrop-blur-xl border-border/50;
+    background: linear-gradient(135deg, 
+      hsl(var(--card)) 0%, 
+      hsl(var(--card)) 50%, 
+      hsl(220 13% 14%) 100%);
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1),
+      0 0 0 1px rgba(255, 255, 255, 0.05);
+  }
+
+  .metallic-chic .card::before {
+    background: linear-gradient(135deg, 
+      rgba(114, 68, 226, 0.02) 0%, 
+      transparent 50%, 
+      rgba(114, 68, 226, 0.008) 100%);
+  }
+
+  .metallic-chic .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 
+      0 12px 40px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15),
+      0 0 0 1px rgba(114, 68, 226, 0.15);
+  }
+  
+  .card-header {
+    @apply flex flex-col space-y-1.5 p-6 relative z-10;
+  }
+  
+  .card-title {
+    @apply text-2xl font-bold font-display leading-none tracking-tight bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent;
+  }
+  
+  .card-description {
+    @apply text-sm text-muted-foreground font-robotic;
+  }
+  
+  .card-content {
+    @apply p-6 pt-0 relative z-10;
+  }
+  
+  .card-footer {
+    @apply flex items-center p-6 pt-0 relative z-10;
+  }
+  
+  /* Neon Badge Styles */
+  .badge {
+    @apply inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold font-robotic tracking-wide transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2;
+  }
+  
+  .badge-default {
+    @apply badge border-transparent bg-primary-600 text-primary-foreground hover:bg-primary-700 shadow-glow-sm hover:shadow-glow;
+  }
+  
+  .badge-secondary {
+    @apply badge border-transparent bg-secondary-600 text-secondary-foreground hover:bg-secondary-700;
+  }
+  
+  .badge-success {
+    @apply badge border-transparent bg-success-500 text-white hover:bg-success-600 shadow-glow-sm hover:shadow-glow;
+  }
+  
+  .badge-warning {
+    @apply badge border-transparent bg-warning-500 text-white hover:bg-warning-600 shadow-glow-sm hover:shadow-glow;
+  }
+  
+  .badge-error {
+    @apply badge border-transparent bg-error-500 text-white hover:bg-error-600 shadow-glow-sm hover:shadow-glow;
+  }
+  
+  .badge-outline {
+    @apply badge border-border text-foreground hover:bg-accent-semantic hover:text-accent-foreground;
+  }
+  
+  .badge-cyber {
+    @apply badge border-primary-500 bg-primary-500/10 text-primary-400 hover:bg-primary-500/20 shadow-glow-sm hover:shadow-glow;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Fix Monaco Editor scroll behavior */
+  .monaco-editor-container {
+    position: relative;
+  }
+  
+  /* Aggressive fix for read-only editors */
+  .monaco-editor-container[data-readonly="true"] {
+    pointer-events: none;
+    user-select: text;
+  }
+  
+  .monaco-editor-container[data-readonly="true"] * {
+    pointer-events: none !important;
+  }
+  
+  .monaco-editor-container[data-readonly="true"] .monaco-editor {
+    overflow: visible !important;
+  }
+  
+  .monaco-editor-container[data-readonly="true"] .monaco-scrollable-element {
+    overflow: visible !important;
+    pointer-events: none !important;
+  }
+  
+  .monaco-editor-container[data-readonly="true"] .decorationsOverviewRuler {
+    display: none !important;
+  }
+  
+  /* Allow text selection in read-only mode */
+  .monaco-editor-container[data-readonly="true"] .view-lines {
+    pointer-events: auto !important;
+    user-select: text !important;
+  }
+  
+  .monaco-editor-container[data-readonly="true"] .view-line {
+    pointer-events: auto !important;
+    user-select: text !important;
+  }
+  
+  /* Cyberpunk Text Effects */
+  .gradient-text {
+    @apply bg-gradient-to-r from-primary-400 via-primary-600 to-accent-500 bg-clip-text text-transparent;
+  }
+  
+  .neon-text {
+    @apply text-primary-400;
+    text-shadow: 0 0 10px currentColor, 0 0 20px currentColor, 0 0 40px currentColor;
+  }
+  
+  .cyber-text {
+    @apply font-display font-bold tracking-wider uppercase;
+    background: linear-gradient(45deg, #f2c744, #e8c488, #d19e28);
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: gradientX 3s ease infinite;
+  }
+  
+  /* Glass Morphism */
+  .glass {
+    @apply backdrop-blur-md bg-white/10 dark:bg-black/10 border border-white/20 dark:border-white/10;
+  }
+  
+  .glass-card {
+    @apply backdrop-blur-xl bg-white/5 dark:bg-black/5 border border-white/10 dark:border-white/5 shadow-2xl;
+  }
+  
+  /* Holographic Effects */
+  .holographic {
+    background: linear-gradient(45deg, 
+      rgba(99, 102, 241, 0.1) 0%, 
+      rgba(139, 92, 246, 0.1) 25%, 
+      rgba(6, 182, 212, 0.1) 50%, 
+      rgba(139, 92, 246, 0.1) 75%, 
+      rgba(99, 102, 241, 0.1) 100%);
+    background-size: 400% 400%;
+    animation: gradientX 4s ease infinite;
+  }
+  
+  /* Animation Utilities */
+  .animate-in {
+    animation: fadeIn 0.5s ease-in-out;
+  }
+  
+  .animate-out {
+    animation: fadeOut 0.5s ease-in-out;
+  }
+  
+  .fade-in-0 {
+    animation-name: fadeIn;
+    animation-duration: 0.15s;
+    animation-timing-function: ease-out;
+    animation-fill-mode: both;
+  }
+  
+  .zoom-in-95 {
+    animation-name: zoomIn95;
+    animation-duration: 0.15s;
+    animation-timing-function: ease-out;
+    animation-fill-mode: both;
+  }
+  
+  .slide-in-from-left {
+    animation: slideInLeft 0.4s ease-out;
+  }
+  
+  .slide-in-from-right {
+    animation: slideInRight 0.4s ease-out;
+  }
+  
+  /* Background Size Utility */
+  .bg-size-200 {
+    background-size: 200% 200%;
+  }
+  
+  /* Perspective Utilities */
+  .perspective-1000 {
+    perspective: 1000px;
+  }
+  
+  .transform-style-3d {
+    transform-style: preserve-3d;
+  }
+  
+  /* Cyberpunk Grid */
+  .cyber-grid {
+    background-image: 
+      linear-gradient(rgba(99, 102, 241, 0.1) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(99, 102, 241, 0.1) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+
+  /* Metallic Chic Grid */
+  .metallic-chic .cyber-grid {
+    background-image: 
+      linear-gradient(rgba(210, 100%, 70%, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(210, 100%, 70%, 0.03) 1px, transparent 1px),
+      radial-gradient(circle at 25% 25%, rgba(210, 100%, 70%, 0.02) 0%, transparent 50%),
+      radial-gradient(circle at 75% 75%, rgba(255, 255, 255, 0.01) 0%, transparent 50%);
+    background-size: 24px 24px, 24px 24px, 120px 120px, 80px 80px;
+  }
+
+  /* Metallic Text Effects */
+  .metallic-chic .gradient-text {
+    background: linear-gradient(135deg, 
+      hsl(210 15% 85%) 0%, 
+      hsl(210 100% 70%) 25%, 
+      hsl(210 20% 75%) 50%, 
+      hsl(210 100% 70%) 75%, 
+      hsl(210 10% 90%) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .metallic-chic .neon-text {
+    color: hsl(210 100% 70%);
+    text-shadow: 
+      0 0 10px currentColor, 
+      0 0 20px currentColor, 
+      0 0 40px currentColor,
+      0 0 80px rgba(210, 100%, 70%, 0.3);
+  }
+
+  /* Metallic Glass Effects */
+  .metallic-glass {
+    background: rgba(220, 13%, 12%, 0.8);
+    backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+
+  .metallic-surface {
+    background: linear-gradient(135deg, 
+      hsl(220 13% 12%) 0%, 
+      hsl(220 13% 15%) 50%, 
+      hsl(220 13% 12%) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 
+      0 4px 16px rgba(0, 0, 0, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+  }
+
+  /* Metallic Shine Animation */
+  .metallic-shine {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .metallic-shine::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, 
+      transparent, 
+      rgba(255, 255, 255, 0.2), 
+      transparent);
+    animation: metallicShine 3s ease-in-out infinite;
+  }
+
+  @keyframes metallicShine {
+    0% { left: -100%; }
+    50% { left: 100%; }
+    100% { left: 100%; }
+  }
+  
+  /* Neon Border */
+  .neon-border {
+    border: 1px solid rgba(99, 102, 241, 0.5);
+    box-shadow: 
+      0 0 10px rgba(99, 102, 241, 0.3),
+      inset 0 0 10px rgba(99, 102, 241, 0.1);
+  }
+  
+  /* Pulse Glow */
+  .pulse-glow {
+    animation: glow 2s ease-in-out infinite alternate;
+  }
+}
+
+/* Monaco Editor custom styles */
+.monaco-editor {
+  border-radius: 12px !important;
+  box-shadow: 0 0 20px rgba(242, 199, 68, 0.08) !important;
+}
+
+/* Cyberpunk Loading spinner */
+.spinner {
+  @apply inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-primary-500 border-r-transparent motion-reduce:animate-[spin_1.5s_linear_infinite];
+  box-shadow: 0 0 10px rgba(242, 199, 68, 0.25);
+}
+
+/* Enhanced Syntax highlighting */
+.hljs {
+  @apply rounded-lg p-4 text-sm font-mono border border-border;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);
+}
+
+/* Futuristic Chat message styles */
+.message-user {
+  @apply ml-auto max-w-[80%] rounded-2xl bg-gradient-to-r from-primary-600 to-primary-700 px-4 py-3 text-white shadow-glow font-robotic;
+  animation: slideInRight 0.3s ease-out;
+}
+
+.message-assistant {
+  @apply mr-auto max-w-[80%] rounded-2xl bg-card border border-border px-4 py-3 text-card-foreground shadow-lg font-robotic backdrop-blur-sm;
+  animation: slideInLeft 0.3s ease-out;
+}
+
+/* Cyberpunk Progress bar */
+.progress-bar {
+  @apply h-3 w-full overflow-hidden rounded-full bg-secondary-200 dark:bg-secondary-800 relative;
+}
+
+.progress-bar::before {
+  content: '';
+  @apply absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent;
+  animation: shimmer 2s infinite;
+}
+
+.progress-fill {
+  @apply h-full bg-gradient-to-r from-primary-500 to-primary-600 transition-all duration-500 ease-out relative overflow-hidden;
+  box-shadow: 0 0 10px rgba(242, 199, 68, 0.3);
+}
+
+.progress-fill::after {
+  content: '';
+  @apply absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Enhanced Tooltip */
+.tooltip {
+  @apply absolute z-50 overflow-hidden rounded-lg border border-border bg-popover px-3 py-2 text-sm text-popover-foreground shadow-xl backdrop-blur-sm animate-in fade-in-0 zoom-in-95;
+  box-shadow: 0 0 20px rgba(242, 199, 68, 0.15);
+}
+
+/* Learning Paths Loader Animations */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+}
+
+.animation-delay-200 {
+  animation-delay: 0.2s;
+}
+
+.animation-delay-300 {
+  animation-delay: 0.3s;
+}
+
+.animation-delay-400 {
+  animation-delay: 0.4s;
+}
+
+.animation-delay-700 {
+  animation-delay: 0.7s;
+}
+
+.animation-delay-500 {
+  animation-delay: 0.5s;
+}
+
+.animation-delay-800 {
+  animation-delay: 0.8s;
+}
+
+.animation-delay-1000 {
+  animation-delay: 1s;
+}
+
+.animation-delay-1500 {
+  animation-delay: 1.5s;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+/* Keyframes for existing animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes zoomIn95 {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes slideInFromBottom {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.slide-in-from-bottom-4 {
+  animation: slideInFromBottom 0.5s ease-out;
+}
+
+/* Custom border width */
+.border-3 {
+  border-width: 3px;
+}
+
+/* Additional cyberpunk animations */
+@keyframes gradientX {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes glow {
+  from {
+    box-shadow: 0 0 20px rgba(242, 199, 68, 0.2);
+  }
+  to {
+    box-shadow: 0 0 30px rgba(242, 199, 68, 0.35), 0 0 40px rgba(242, 199, 68, 0.2);
+  }
+}
+
+.animate-gradient-x {
+  animation: gradientX 3s ease infinite;
+}
+
+.animate-pulse-slow {
+  animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-bounce-gentle {
+  animation: bounce 3s infinite;
+}
+
+/* Glassmorphism utilities */
+.glass-card {
+  @apply bg-card/30 backdrop-blur-2xl border border-border/30 shadow-2xl;
+}
+
+.glass-header {
+  @apply bg-card/20 backdrop-blur-2xl border-b border-border/30;
+}
+
+.glass-sidebar {
+  @apply bg-card/30 backdrop-blur-2xl border-r border-border/30;
+}
+
+.glass-button {
+  @apply bg-card/30 backdrop-blur-sm border border-border/50 hover:bg-card/50 transition-all duration-300;
+}
+
+.glass-input {
+  @apply bg-card/30 backdrop-blur-sm border border-border/50 focus:bg-card/50 transition-all duration-300;
+}
+
+/* Enhanced floating animations */
+@keyframes float-gentle {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  33% { transform: translateY(-10px) rotate(1deg); }
+  66% { transform: translateY(5px) rotate(-1deg); }
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { 
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% { 
+    opacity: 0.6;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.animate-float-gentle {
+  animation: float-gentle 6s ease-in-out infinite;
+}
+
+.animate-float-slow {
+  animation: float-slow 8s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 4s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  animation: shimmer 2s ease-in-out infinite;
+}

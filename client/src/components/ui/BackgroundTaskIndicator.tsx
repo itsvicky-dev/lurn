@@ -17,7 +17,9 @@ const BackgroundTaskIndicator: React.FC = () => {
     setTasks(backgroundTaskService.getAllTasks());
     setIsVisible(backgroundTaskService.getAllTasks().length > 0);
 
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   const activeTasks = tasks.filter(task => task.status === 'in-progress' || task.status === 'pending');
@@ -36,13 +38,13 @@ const BackgroundTaskIndicator: React.FC = () => {
     switch (task.status) {
       case 'in-progress':
       case 'pending':
-        return <Loader className="h-4 w-4 animate-spin text-blue-500" />;
+        return <Loader className="h-4 w-4 animate-spin text-primary" />;
       case 'completed':
         return <CheckCircle className="h-4 w-4 text-green-500" />;
       case 'failed':
-        return <AlertCircle className="h-4 w-4 text-red-500" />;
+        return <AlertCircle className="h-4 w-4 text-destructive" />;
       default:
-        return <Clock className="h-4 w-4 text-gray-500" />;
+        return <Clock className="h-4 w-4 text-muted-foreground" />;
     }
   };
 
@@ -65,6 +67,7 @@ const BackgroundTaskIndicator: React.FC = () => {
   const getTaskTypeLabel = (type: string) => {
     const labels = {
       'learning-path': '🎯 Learning Path',
+      'onboarding-path': '🎓 Onboarding Path',
       'modules': '📚 Modules',
       'topics': '📖 Topics',
       'course': '🎓 Course',
@@ -76,18 +79,18 @@ const BackgroundTaskIndicator: React.FC = () => {
 
   return (
     <div className="fixed bottom-4 right-4 z-50">
-      <div className="bg-white rounded-lg shadow-lg border border-gray-200 max-w-sm">
+      <div className="bg-card rounded-lg shadow-lg border border-border max-w-sm">
         {/* Header */}
         <div 
-          className="flex items-center justify-between p-3 cursor-pointer hover:bg-gray-50 rounded-t-lg"
+          className="flex items-center justify-between p-3 cursor-pointer hover:bg-accent rounded-t-lg"
           onClick={() => setIsExpanded(!isExpanded)}
         >
           <div className="flex items-center space-x-2">
             <div className="flex items-center space-x-1">
               {activeTasks.length > 0 && (
-                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
               )}
-              <span className="font-medium text-gray-900">
+              <span className="font-medium text-card-foreground">
                 Background Tasks ({tasks.length})
               </span>
             </div>
@@ -99,24 +102,24 @@ const BackgroundTaskIndicator: React.FC = () => {
                   e.stopPropagation();
                   handleClearCompleted();
                 }}
-                className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1 rounded"
+                className="text-xs text-muted-foreground hover:text-card-foreground px-2 py-1 rounded"
               >
                 Clear
               </button>
             )}
             {isExpanded ? (
-              <ChevronUp className="h-4 w-4 text-gray-500" />
+              <ChevronUp className="h-4 w-4 text-muted-foreground" />
             ) : (
-              <ChevronDown className="h-4 w-4 text-gray-500" />
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
             )}
           </div>
         </div>
 
         {/* Task List */}
         {isExpanded && (
-          <div className="border-t border-gray-200 max-h-64 overflow-y-auto">
+          <div className="border-t border-border max-h-64 overflow-y-auto">
             {tasks.length === 0 ? (
-              <div className="p-3 text-center text-gray-500 text-sm">
+              <div className="p-3 text-center text-muted-foreground text-sm">
                 No background tasks
               </div>
             ) : (
@@ -124,26 +127,26 @@ const BackgroundTaskIndicator: React.FC = () => {
                 {tasks.map((task) => (
                   <div
                     key={task.id}
-                    className="flex items-center justify-between p-2 rounded hover:bg-gray-50"
+                    className="flex items-center justify-between p-2 rounded hover:bg-accent"
                   >
                     <div className="flex items-center space-x-2 flex-1 min-w-0">
                       {getTaskIcon(task)}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center space-x-2">
-                          <span className="text-xs font-medium text-gray-600">
+                          <span className="text-xs font-medium text-muted-foreground">
                             {getTaskTypeLabel(task.type)}
                           </span>
                         </div>
-                        <p className="text-sm font-medium text-gray-900 truncate">
+                        <p className="text-sm font-medium text-card-foreground truncate">
                           {task.title}
                         </p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-muted-foreground">
                           {getTaskStatusText(task)}
                         </p>
                         {task.status === 'in-progress' && (
-                          <div className="w-full bg-gray-200 rounded-full h-1 mt-1">
+                          <div className="w-full bg-muted rounded-full h-1 mt-1">
                             <div
-                              className="bg-blue-500 h-1 rounded-full transition-all duration-300"
+                              className="bg-primary h-1 rounded-full transition-all duration-300"
                               style={{ width: `${task.progress}%` }}
                             />
                           </div>
@@ -152,7 +155,7 @@ const BackgroundTaskIndicator: React.FC = () => {
                     </div>
                     <button
                       onClick={() => handleRemoveTask(task.id)}
-                      className="text-gray-400 hover:text-gray-600 p-1"
+                      className="text-muted-foreground hover:text-card-foreground p-1"
                     >
                       <X className="h-3 w-3" />
                     </button>
@@ -166,7 +169,7 @@ const BackgroundTaskIndicator: React.FC = () => {
         {/* Summary when collapsed */}
         {!isExpanded && (activeTasks.length > 0 || completedTasks.length > 0 || failedTasks.length > 0) && (
           <div className="px-3 pb-3">
-            <div className="flex items-center justify-between text-xs text-gray-500">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
               {activeTasks.length > 0 && (
                 <span className="flex items-center space-x-1">
                   <Loader className="h-3 w-3 animate-spin" />

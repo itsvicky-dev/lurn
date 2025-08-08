@@ -187,8 +187,8 @@ const RockPaperScissorsGame: React.FC<RockPaperScissorsGameProps> = ({
 
   const getResultColor = () => {
     if (result === 'win') return 'text-green-500';
-    if (result === 'lose') return 'text-red-500';
-    return 'text-yellow-500';
+    if (result === 'lose') return 'text-destructive';
+    return 'text-yellow-500 dark:text-yellow-400';
   };
 
   const getChoiceDisplay = (choice: Choice, isPlayer: boolean = true) => {
@@ -202,7 +202,7 @@ const RockPaperScissorsGame: React.FC<RockPaperScissorsGameProps> = ({
         initial={{ scale: 0, rotate: -180 }}
         animate={{ scale: 1, rotate: 0 }}
         className={`text-center p-4 rounded-lg ${
-          isPlayer ? 'bg-blue-50 border-2 border-blue-200' : 'bg-red-50 border-2 border-red-200'
+          isPlayer ? 'bg-primary/10 border-2 border-primary/30' : 'bg-destructive/10 border-2 border-destructive/30'
         }`}
       >
         <div className="text-4xl mb-2">{choiceData.emoji}</div>
@@ -216,10 +216,10 @@ const RockPaperScissorsGame: React.FC<RockPaperScissorsGameProps> = ({
 
   if (compact) {
     return (
-      <div className="bg-white rounded-lg p-4 shadow-lg max-w-sm mx-auto">
+      <div className="bg-card rounded-lg p-4 shadow-lg max-w-sm mx-auto">
         <div className="text-center mb-4">
-          <h3 className="text-lg font-bold text-gray-800">Rock Paper Scissors</h3>
-          <p className="text-sm text-gray-600">Quick game while you wait!</p>
+          <h3 className="text-lg font-bold text-card-foreground">Rock Paper Scissors</h3>
+          <p className="text-sm text-muted-foreground">Quick game while you wait!</p>
         </div>
 
         {/* Compact Game Area */}
@@ -247,7 +247,7 @@ const RockPaperScissorsGame: React.FC<RockPaperScissorsGameProps> = ({
           </div>
         ) : countdown !== null ? (
           <div className="text-center space-y-4">
-            <div className="text-6xl font-bold text-primary-500">
+            <div className="text-6xl font-bold text-primary">
               {countdown}
             </div>
             <div className="text-sm text-muted-foreground">Get ready...</div>
@@ -265,7 +265,7 @@ const RockPaperScissorsGame: React.FC<RockPaperScissorsGameProps> = ({
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => playRound(choice.value)}
-                  className="p-3 bg-gray-100 border-2 border-gray-300 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-all"
+                  className="p-3 bg-muted border-2 border-border rounded-lg hover:bg-accent hover:border-primary transition-all"
                   disabled={isAiThinking}
                 >
                   <div className="text-2xl mb-1">{choice.emoji}</div>
@@ -319,19 +319,19 @@ const RockPaperScissorsGame: React.FC<RockPaperScissorsGameProps> = ({
             <div className="text-xs text-muted-foreground">Your Wins</div>
           </div>
           <div className="card p-3 text-center">
-            <div className="text-2xl font-bold text-red-500">{stats.aiWins}</div>
+            <div className="text-2xl font-bold text-destructive">{stats.aiWins}</div>
             <div className="text-xs text-muted-foreground">AI Wins</div>
           </div>
           <div className="card p-3 text-center">
-            <div className="text-2xl font-bold text-yellow-500">{stats.draws}</div>
+            <div className="text-2xl font-bold text-yellow-500 dark:text-yellow-400">{stats.draws}</div>
             <div className="text-xs text-muted-foreground">Draws</div>
           </div>
           <div className="card p-3 text-center">
-            <div className="text-2xl font-bold text-blue-500">{stats.streak}</div>
+            <div className="text-2xl font-bold text-primary">{stats.streak}</div>
             <div className="text-xs text-muted-foreground">Current Streak</div>
           </div>
           <div className="card p-3 text-center">
-            <div className="text-2xl font-bold text-purple-500">{stats.bestStreak}</div>
+            <div className="text-2xl font-bold text-secondary">{stats.bestStreak}</div>
             <div className="text-xs text-muted-foreground">Best Streak</div>
           </div>
         </motion.div>
@@ -352,7 +352,7 @@ const RockPaperScissorsGame: React.FC<RockPaperScissorsGameProps> = ({
               exit={{ opacity: 0, scale: 1.5 }}
               className="text-center space-y-4"
             >
-              <div className="text-8xl font-bold text-primary-500">
+              <div className="text-8xl font-bold text-primary">
                 {countdown}
               </div>
               <div className="text-lg text-muted-foreground">
@@ -383,12 +383,12 @@ const RockPaperScissorsGame: React.FC<RockPaperScissorsGameProps> = ({
                     animate={{ scale: 1 }}
                     className="flex justify-center"
                   >
-                    <Trophy className="h-12 w-12 text-yellow-500" />
+                    <Trophy className="h-12 w-12 text-yellow-500 dark:text-yellow-400" />
                   </motion.div>
                 )}
                 
                 {stats.streak > 1 && result === 'win' && (
-                  <div className="text-lg text-blue-500 font-medium">
+                  <div className="text-lg text-primary font-medium">
                     🔥 {stats.streak} Win Streak!
                   </div>
                 )}
@@ -414,7 +414,7 @@ const RockPaperScissorsGame: React.FC<RockPaperScissorsGameProps> = ({
                     whileHover={{ scale: 1.05, y: -5 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => playRound(choice.value)}
-                    className="p-6 bg-background border-2 border-border rounded-lg hover:border-primary-300 hover:bg-primary-50 transition-all group"
+                    className="p-6 bg-background border-2 border-border rounded-lg hover:border-primary hover:bg-accent transition-all group"
                     disabled={isAiThinking}
                   >
                     <div className="text-5xl mb-3 group-hover:scale-110 transition-transform">
@@ -447,10 +447,10 @@ const RockPaperScissorsGame: React.FC<RockPaperScissorsGameProps> = ({
                 key={round.round}
                 className={`flex-shrink-0 p-2 rounded-lg border text-xs ${
                   round.result === 'win' 
-                    ? 'border-green-200 bg-green-50' 
+                    ? 'border-green-200 bg-green-50 dark:bg-green-950 dark:border-green-800' 
                     : round.result === 'lose'
-                    ? 'border-red-200 bg-red-50'
-                    : 'border-yellow-200 bg-yellow-50'
+                    ? 'border-red-200 bg-red-50 dark:bg-red-950 dark:border-red-800'
+                    : 'border-yellow-200 bg-yellow-50 dark:bg-yellow-950 dark:border-yellow-800'
                 }`}
               >
                 <div className="text-center">
@@ -459,8 +459,8 @@ const RockPaperScissorsGame: React.FC<RockPaperScissorsGameProps> = ({
                     {choices.find(c => c.value === round.aiChoice)?.emoji}
                   </div>
                   <div className={`font-medium ${
-                    round.result === 'win' ? 'text-green-600' : 
-                    round.result === 'lose' ? 'text-red-600' : 'text-yellow-600'
+                    round.result === 'win' ? 'text-green-600 dark:text-green-400' : 
+                    round.result === 'lose' ? 'text-red-600 dark:text-red-400' : 'text-yellow-600 dark:text-yellow-400'
                   }`}>
                     {round.result === 'win' ? 'W' : round.result === 'lose' ? 'L' : 'D'}
                   </div>

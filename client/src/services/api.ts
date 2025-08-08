@@ -39,7 +39,9 @@ class ApiService {
     // Response interceptor to handle errors
     this.api.interceptors.response.use(
       (response) => response,
-      (error) => {
+      async (error) => {
+        const originalRequest = error.config;
+        
         if (error.response?.status === 401) {
           localStorage.removeItem('token');
           // Only redirect to login if not already on login or register page
@@ -48,6 +50,37 @@ class ApiService {
             window.location.href = '/login';
           }
         }
+        
+        // Handle network errors with retry for specific endpoints
+        if (error.code === 'ERR_NETWORK' && !originalRequest._retry) {
+          originalRequest._retry = true;
+          
+          // Only retry for learning path creation and other critical operations
+          if (originalRequest.url?.includes('/learning/paths') && originalRequest.method === 'post') {
+            console.log('Network error detected for learning path creation, retrying in 3 seconds...');
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            
+            try {
+              return this.api(originalRequest);
+            } catch (retryError: any) {
+              console.error('Retry also failed:', retryError);
+              // Don't retry again, let the original error propagate
+            }
+          }
+          
+          // Retry for onboarding as well
+          if (originalRequest.url?.includes('/user/onboarding') && originalRequest.method === 'post') {
+            console.log('Network error detected for onboarding, retrying in 2 seconds...');
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            try {
+              return this.api(originalRequest);
+            } catch (retryError: any) {
+              console.error('Onboarding retry also failed:', retryError);
+            }
+          }
+        }
+        
         return Promise.reject(error);
       }
     );
@@ -80,7 +113,9 @@ class ApiService {
 
   // User endpoints
   async completeOnboarding(data: OnboardingRequest): Promise<{ user: User; learningPaths: LearningPath[] }> {
-    const response = await this.api.post('/user/onboarding', data);
+    const response = await this.api.post('/user/onboarding', data, {
+      timeout: 120000 // 2 minutes timeout for onboarding
+    });
     return response.data;
   }
 
@@ -116,11 +151,50 @@ class ApiService {
   }
 
   async createLearningPath(data: { subject: string; preferences?: any }): Promise<{ learningPath: LearningPath }> {
-    // Use longer timeout for learning path creation as AI generation can take time
-    const response = await this.api.post('/learning/paths', data, {
-      timeout: 660000 // 11 minutes timeout for learning path creation (longer than backend)
-    });
-    return response.data;
+    console.log('🚀 Starting learning path creation request:', data);
+    
+    try {
+      // Use longer timeout for learning path creation as AI generation can take time
+      const response = await this.api.post('/learning/paths', data, {
+        timeout: 660000, // 11 minutes timeout for learning path creation (longer than backend)
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      console.log('✅ Learning path creation response received:', {
+        status: response.status,
+        statusText: response.statusText,
+        dataKeys: Object.keys(response.data || {}),
+        hasLearningPath: !!response.data?.learningPath
+      });
+      
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Learning path creation failed:', {
+        message: error.message,
+        code: error.code,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        responseData: error.response?.data,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method,
+          timeout: error.config?.timeout
+        }
+      });
+      
+      // If it's a network error, provide more context
+      if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
+        console.error('🔍 Network error details:', {
+          baseURL: this.api.defaults.baseURL,
+          fullURL: `${this.api.defaults.baseURL}/learning/paths`,
+          requestData: data
+        });
+      }
+      
+      throw error;
+    }
   }
 
   async generateModules(pathId: string): Promise<{ learningPath: LearningPath }> {

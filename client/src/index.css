@@ -223,15 +223,24 @@
   }
   
   .btn-sm {
-    @apply h-8 px-3 text-xs;
+    @apply h-8 px-3 text-xs min-w-[60px];
   }
   
   .btn-md {
-    @apply h-10 px-4 py-2;
+    @apply h-10 px-4 py-2 text-sm min-w-[80px];
   }
   
   .btn-lg {
-    @apply h-12 px-8 text-base;
+    @apply h-12 px-8 text-base min-w-[120px];
+  }
+  
+  /* Button spacing and alignment improvements */
+  .btn {
+    @apply whitespace-nowrap;
+  }
+  
+  .btn:disabled {
+    @apply transform-none scale-100;
   }
   
   /* Futuristic Input Styles */

@@ -79,7 +79,7 @@ const LearningPathsLoader: React.FC<LearningPathsLoaderProps> = ({ className = '
 
       {/* Progress Bar */}
       <div className="w-80 max-w-sm">
-        <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+        <div className="h-2 bg-muted rounded-full overflow-hidden">
           <div className="h-full bg-gradient-to-r from-primary-500 to-primary-600 rounded-full animate-pulse transform origin-left">
             <div className="h-full bg-gradient-to-r from-transparent via-white to-transparent opacity-30 animate-shimmer"></div>
           </div>
@@ -88,10 +88,10 @@ const LearningPathsLoader: React.FC<LearningPathsLoaderProps> = ({ className = '
 
       {/* Dynamic Loading Message */}
       <div className="text-center space-y-2 max-w-md">
-        <h3 className="text-xl font-semibold text-gray-800 transition-all duration-500 ease-in-out transform">
+        <h3 className="text-xl font-semibold text-foreground transition-all duration-500 ease-in-out transform">
           {message || loadingMessages[currentMessageIndex]}
         </h3>
-        <p className="text-gray-600 text-sm">
+        <p className="text-muted-foreground text-sm">
           This might take a few moments while we personalize your experience
         </p>
       </div>
@@ -105,16 +105,16 @@ const LearningPathsLoader: React.FC<LearningPathsLoaderProps> = ({ className = '
 
       {/* Motivational Quote */}
       {showMotivation && (
-        <div className="text-center mt-8 p-4 bg-gradient-to-r from-primary-50 to-indigo-50 rounded-lg border border-primary-100 max-w-md animate-in fade-in-0">
+        <div className="text-center mt-8 p-4 bg-gradient-to-r from-primary-50/50 to-primary-100/50 dark:from-primary-900/20 dark:to-primary-800/20 rounded-lg border border-primary-200/50 dark:border-primary-700/50 max-w-md animate-in fade-in-0">
           <div className="flex items-center justify-center mb-2">
             <Star className="w-4 h-4 text-yellow-500 mr-1" />
-            <span className="text-xs font-medium text-gray-600 uppercase tracking-wide">Daily Inspiration</span>
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Daily Inspiration</span>
             <Star className="w-4 h-4 text-yellow-500 ml-1" />
           </div>
-          <p className="text-sm text-gray-700 italic mb-2">
+          <p className="text-sm text-foreground italic mb-2">
             "{motivationalQuotes[currentMessageIndex % motivationalQuotes.length].quote}"
           </p>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-muted-foreground">
             - {motivationalQuotes[currentMessageIndex % motivationalQuotes.length].author}
           </p>
         </div>
@@ -123,20 +123,20 @@ const LearningPathsLoader: React.FC<LearningPathsLoaderProps> = ({ className = '
       {/* Learning Stats Preview */}
       {/* {showMotivation && (
         <div className="mt-6 grid grid-cols-3 gap-4 max-w-sm mx-auto animate-in fade-in-0">
-          <div className="text-center p-3 bg-white rounded-lg shadow-sm border border-gray-100">
+          <div className="text-center p-3 bg-card rounded-lg shadow-sm border border-border">
             <TrendingUp className="w-5 h-5 text-green-500 mx-auto mb-1" />
-            <div className="text-lg font-bold text-gray-900">24/7</div>
-            <div className="text-xs text-gray-600">Available</div>
+            <div className="text-lg font-bold text-foreground">24/7</div>
+            <div className="text-xs text-muted-foreground">Available</div>
           </div>
-          <div className="text-center p-3 bg-white rounded-lg shadow-sm border border-gray-100">
+          <div className="text-center p-3 bg-card rounded-lg shadow-sm border border-border">
             <GraduationCap className="w-5 h-5 text-blue-500 mx-auto mb-1" />
-            <div className="text-lg font-bold text-gray-900">∞</div>
-            <div className="text-xs text-gray-600">Subjects</div>
+            <div className="text-lg font-bold text-foreground">∞</div>
+            <div className="text-xs text-muted-foreground">Subjects</div>
           </div>
-          <div className="text-center p-3 bg-white rounded-lg shadow-sm border border-gray-100">
+          <div className="text-center p-3 bg-card rounded-lg shadow-sm border border-border">
             <Brain className="w-5 h-5 text-purple-500 mx-auto mb-1" />
-            <div className="text-lg font-bold text-gray-900">AI</div>
-            <div className="text-xs text-gray-600">Powered</div>
+            <div className="text-lg font-bold text-foreground">AI</div>
+            <div className="text-xs text-muted-foreground">Powered</div>
           </div>
         </div>
       )} */}

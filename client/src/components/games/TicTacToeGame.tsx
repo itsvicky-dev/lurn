@@ -190,7 +190,7 @@ const TicTacToeGame: React.FC<TicTacToeGameProps> = ({
     if (!player) return null;
     
     const isWinning = winningLine.includes(index);
-    const iconClass = `h-8 w-8 ${isWinning ? 'text-yellow-500' : player === 'X' ? 'text-blue-500' : 'text-red-500'}`;
+    const iconClass = `h-8 w-8 ${isWinning ? 'text-yellow-500 dark:text-yellow-400' : player === 'X' ? 'text-primary' : 'text-destructive'}`;
     
     return player === 'X' ? <X className={iconClass} /> : <Circle className={iconClass} />;
   };
@@ -204,16 +204,16 @@ const TicTacToeGame: React.FC<TicTacToeGameProps> = ({
 
   const getWinnerColor = () => {
     if (winner === 'X') return 'text-green-500';
-    if (winner === 'O') return 'text-red-500';
-    return 'text-yellow-500';
+    if (winner === 'O') return 'text-destructive';
+    return 'text-yellow-500 dark:text-yellow-400';
   };
 
   if (compact) {
     return (
-      <div className="bg-white rounded-lg p-4 shadow-lg max-w-sm mx-auto">
+      <div className="bg-card rounded-lg p-4 shadow-lg max-w-sm mx-auto">
         <div className="text-center mb-4">
-          <h3 className="text-lg font-bold text-gray-800">Tic-Tac-Toe</h3>
-          <p className="text-sm text-gray-600">Play while you wait!</p>
+          <h3 className="text-lg font-bold text-card-foreground">Tic-Tac-Toe</h3>
+          <p className="text-sm text-muted-foreground">Play while you wait!</p>
         </div>
 
         {/* Compact Board */}
@@ -224,9 +224,9 @@ const TicTacToeGame: React.FC<TicTacToeGameProps> = ({
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => makeMove(index)}
-              className={`aspect-square bg-gray-100 border-2 border-gray-300 rounded-lg flex items-center justify-center transition-all ${
-                !cell && !winner && currentPlayer === 'X' ? 'hover:bg-blue-50 hover:border-blue-300' : ''
-              } ${winningLine.includes(index) ? 'bg-yellow-100 border-yellow-400' : ''}`}
+              className={`aspect-square bg-muted border-2 border-border rounded-lg flex items-center justify-center transition-all ${
+                !cell && !winner && currentPlayer === 'X' ? 'hover:bg-accent hover:border-primary' : ''
+              } ${winningLine.includes(index) ? 'bg-yellow-100 dark:bg-yellow-900 border-yellow-400' : ''}`}
               disabled={!!cell || !!winner || currentPlayer === 'O'}
             >
               {getCellIcon(cell, index)}
@@ -241,12 +241,12 @@ const TicTacToeGame: React.FC<TicTacToeGameProps> = ({
               {getWinnerMessage()}
             </div>
           ) : isAiThinking ? (
-            <div className="text-blue-500 flex items-center justify-center space-x-2">
+            <div className="text-primary flex items-center justify-center space-x-2">
               <Brain className="h-4 w-4 animate-pulse" />
               <span>AI thinking...</span>
             </div>
           ) : (
-            <div className="text-gray-600">
+            <div className="text-muted-foreground">
               Your turn (X)
             </div>
           )}
@@ -310,7 +310,7 @@ const TicTacToeGame: React.FC<TicTacToeGameProps> = ({
               onClick={() => setGameMode('ai-easy')}
               className={`p-3 rounded-lg border-2 transition-all ${
                 gameMode === 'ai-easy' 
-                  ? 'border-green-500 bg-green-50 text-green-700' 
+                  ? 'border-green-500 bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300' 
                   : 'border-border hover:border-green-300'
               }`}
             >
@@ -325,7 +325,7 @@ const TicTacToeGame: React.FC<TicTacToeGameProps> = ({
               onClick={() => setGameMode('ai-hard')}
               className={`p-3 rounded-lg border-2 transition-all ${
                 gameMode === 'ai-hard' 
-                  ? 'border-red-500 bg-red-50 text-red-700' 
+                  ? 'border-red-500 bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300' 
                   : 'border-border hover:border-red-300'
               }`}
             >
@@ -351,11 +351,11 @@ const TicTacToeGame: React.FC<TicTacToeGameProps> = ({
             <div className="text-xs text-muted-foreground">Your Wins</div>
           </div>
           <div className="card p-3 text-center">
-            <div className="text-2xl font-bold text-red-500">{stats.aiWins}</div>
+            <div className="text-2xl font-bold text-destructive">{stats.aiWins}</div>
             <div className="text-xs text-muted-foreground">AI Wins</div>
           </div>
           <div className="card p-3 text-center">
-            <div className="text-2xl font-bold text-yellow-500">{stats.draws}</div>
+            <div className="text-2xl font-bold text-yellow-500 dark:text-yellow-400">{stats.draws}</div>
             <div className="text-xs text-muted-foreground">Draws</div>
           </div>
           <div className="card p-3 text-center">
@@ -379,8 +379,8 @@ const TicTacToeGame: React.FC<TicTacToeGameProps> = ({
               whileTap={{ scale: cell || winner ? 1 : 0.95 }}
               onClick={() => makeMove(index)}
               className={`aspect-square bg-background border-2 border-border rounded-lg flex items-center justify-center transition-all text-2xl font-bold ${
-                !cell && !winner && currentPlayer === 'X' ? 'hover:bg-primary-50 hover:border-primary-300' : ''
-              } ${winningLine.includes(index) ? 'bg-yellow-100 border-yellow-400 shadow-lg' : ''}`}
+                !cell && !winner && currentPlayer === 'X' ? 'hover:bg-accent hover:border-primary' : ''
+              } ${winningLine.includes(index) ? 'bg-yellow-100 dark:bg-yellow-900 border-yellow-400 shadow-lg' : ''}`}
               disabled={!!cell || !!winner || currentPlayer === 'O'}
             >
               <AnimatePresence>
@@ -415,7 +415,7 @@ const TicTacToeGame: React.FC<TicTacToeGameProps> = ({
                 </div>
                 {winner === 'X' && (
                   <div className="flex justify-center">
-                    <Trophy className="h-8 w-8 text-yellow-500" />
+                    <Trophy className="h-8 w-8 text-yellow-500 dark:text-yellow-400" />
                   </div>
                 )}
               </motion.div>
@@ -425,7 +425,7 @@ const TicTacToeGame: React.FC<TicTacToeGameProps> = ({
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                className="flex items-center justify-center space-x-2 text-blue-500"
+                className="flex items-center justify-center space-x-2 text-primary"
               >
                 <Brain className="h-5 w-5 animate-pulse" />
                 <span className="text-lg">AI is thinking...</span>

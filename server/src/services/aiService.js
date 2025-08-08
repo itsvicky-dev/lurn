@@ -47,10 +47,10 @@ class AIService {
     // Using free models from OpenRouter
     this.defaultModel = process.env.OPENROUTER_MODEL || RECOMMENDED_FREE_MODEL;
     this.fallbackModels = [
-      FREE_MODELS.DEEPSEEK_R1,
-      FREE_MODELS.DEEPSEEK_V3,
-      FREE_MODELS.QWEN3_14B,
-      FREE_MODELS.QWEN3_3_5B
+      FREE_MODELS.QWEN3_14B,        // Try Qwen first - better for structured output
+      FREE_MODELS.DEEPSEEK_V3,      // Then DeepSeek V3 - more stable than R1
+      FREE_MODELS.QWEN3_3_5B,       // Smaller but faster
+      FREE_MODELS.DEEPSEEK_R1       // R1 last due to reasoning format issues
     ];
     
     // Validate API key
@@ -62,6 +62,9 @@ class AIService {
     
     console.log('AI Service initialized with API key:', this.apiKey ? `${this.apiKey.substring(0, 10)}...` : 'NOT SET');
     
+    // Check API key status on initialization
+    this.checkApiKeyStatus();
+    
     this.client = axios.create({
       baseURL: this.baseURL,
       timeout: 300000, // 5 minutes timeout for AI content generation (increased for complex learning paths)
@@ -72,6 +75,21 @@ class AIService {
         'X-Title': 'AI Tutor'
       }
     });
+  }
+
+  async checkApiKeyStatus() {
+    try {
+      const response = await this.client.get('/auth/key');
+      console.log('🔑 API Key Status:', {
+        label: response.data.data?.label,
+        usage: response.data.data?.usage,
+        limit: response.data.data?.limit,
+        is_free_tier: response.data.data?.is_free_tier,
+        rate_limit: response.data.data?.rate_limit
+      });
+    } catch (error) {
+      console.error('❌ Failed to check API key status:', error.response?.data || error.message);
+    }
   }
 
   async generateCompletion(messages, options = {}) {
@@ -123,12 +141,43 @@ class AIService {
         ...options
       });
 
-      if (!response.data || !response.data.choices || !response.data.choices[0]) {
-        throw new Error('Invalid response format from AI service');
+      if (!response.data) {
+        console.error('❌ No response.data from OpenRouter API');
+        throw new Error('Invalid response format from AI service: No response data');
+      }
+      
+      if (!response.data.choices) {
+        console.error('❌ No choices in response.data:', response.data);
+        throw new Error('Invalid response format from AI service: No choices array');
+      }
+      
+      if (!response.data.choices[0]) {
+        console.error('❌ No first choice in response.data.choices:', response.data.choices);
+        throw new Error('Invalid response format from AI service: Empty choices array');
+      }
+      
+      if (!response.data.choices[0].message) {
+        console.error('❌ No message in first choice:', response.data.choices[0]);
+        throw new Error('Invalid response format from AI service: No message in choice');
+      }
+      
+      const message = response.data.choices[0].message;
+      let content = message.content;
+      
+      // Handle DeepSeek R1 model which may put content in reasoning field
+      if (!content && message.reasoning) {
+        console.log('🧠 DeepSeek R1 detected: Using reasoning field as content');
+        content = message.reasoning;
+      }
+      
+      if (!content) {
+        console.error('❌ No content in message:', message);
+        console.error('❌ Finish reason:', response.data.choices[0].finish_reason);
+        throw new Error('Invalid response format from AI service: No content in message');
       }
 
       return {
-        content: response.data.choices[0].message.content,
+        content: content,
         usage: response.data.usage,
         model: response.data.model
       };
@@ -146,7 +195,13 @@ class AIService {
       } else if (error.response?.status === 401) {
         throw new Error('AI service authentication failed: Invalid API key');
       } else if (error.response?.status === 429) {
-        throw new Error(`Model ${model} rate limit exceeded`);
+        const errorData = error.response?.data;
+        if (errorData?.error?.message?.includes('quota')) {
+          throw new Error(`Daily quota exceeded for free models. Please try again tomorrow or upgrade your OpenRouter account.`);
+        } else if (errorData?.error?.message?.includes('rate limit')) {
+          throw new Error(`Rate limit exceeded (20 requests/minute for free models). Please wait a minute and try again.`);
+        }
+        throw new Error(`Model ${model} rate limit exceeded: ${errorData?.error?.message || 'Unknown rate limit error'}`);
       } else if (error.response?.status === 503) {
         throw new Error(`Model ${model} is temporarily unavailable`);
       } else if (error.response?.status >= 500) {
@@ -249,6 +304,8 @@ CRITICAL REQUIREMENTS:
 
     console.log(`🤖 Requesting learning path generation from AI model: ${this.defaultModel} (${batchSize} batch)`);
     console.log(`📊 Expected: EXACTLY ${exactModuleCount} modules with EXACTLY ${exactTopicCount} topics each`);
+    console.log(`🔑 API Key configured: ${this.apiKey ? 'Yes' : 'No'}`);
+    console.log(`🌐 Base URL: ${this.baseURL}`);
     
     let response;
     let lastError;
@@ -261,7 +318,7 @@ CRITICAL REQUIREMENTS:
         console.log(`🔄 Attempting generation with model: ${model}`);
         response = await this.generateCompletion(messages, {
           temperature: 0.7, // Slightly lower for more consistent JSON
-          maxTokens: maxTokens,
+          maxTokens: Math.max(maxTokens, 8000), // Ensure minimum tokens for learning path generation
           model: model
         });
         console.log(`✅ Successfully generated content with model: ${model}`);

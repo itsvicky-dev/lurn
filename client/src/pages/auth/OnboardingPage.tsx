@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import {type OnboardingRequest } from '../../types';
 import apiService from '../../services/api';
-import LoadingSpinner from '../../components/ui/LoadingSpinner';
-import EnhancedLoadingSpinner from '../../components/ui/EnhancedLoadingSpinner';
+
 import { notificationService } from '../../services/notificationService';
+import { backgroundTaskService } from '../../services/backgroundTaskService';
 import { BookOpen, ChevronRight, ChevronLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -52,7 +52,6 @@ const OnboardingPage: React.FC = () => {
   const { user, updateUser } = useAuth();
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
-  const [loading, setLoading] = useState(false);
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
   const [formData, setFormData] = useState<OnboardingRequest & { 
     customSubject: string; 
@@ -127,15 +126,6 @@ const OnboardingPage: React.FC = () => {
     }
 
     try {
-      setLoading(true);
-      
-      // Show notification prompt after 15 seconds
-      setTimeout(() => {
-        if (loading && !notificationService.isPermissionGranted()) {
-          setShowNotificationPrompt(true);
-        }
-      }, 15000);
-      
       // Prepare the onboarding data with custom subject included
       const onboardingData: OnboardingRequest = {
         subjects,
@@ -146,33 +136,44 @@ const OnboardingPage: React.FC = () => {
         language: formData.language
       };
 
+      // Complete onboarding first
       const { user: updatedUser } = await apiService.completeOnboarding(onboardingData);
       updateUser(updatedUser);
-      toast.success('Welcome to AI Tutor! Generating your personalized learning paths...');
       
-      // Wait for learning paths to be available, then redirect
-      let attempts = 0;
-      let learningPaths = [];
-      while (attempts < 10) {
+      // Request notification permission for background tasks (non-blocking)
+      notificationService.requestPermission().catch(console.warn);
+      
+      // Start background learning path creation for each subject (non-blocking)
+      const backgroundTasks = [];
+      for (const subject of subjects) {
         try {
-          const res = await apiService.getLearningPaths();
-          learningPaths = res.learningPaths || [];
-          if (learningPaths.length > 0) break;
-        } catch (e) {}
-        await new Promise(r => setTimeout(r, 1200));
-        attempts++;
+          const taskId = await backgroundTaskService.createLearningPathInBackground(
+            subject, 
+            onboardingData,
+            'onboarding'
+          );
+          backgroundTasks.push(taskId);
+        } catch (error) {
+          console.error(`Failed to start background task for ${subject}:`, error);
+        }
       }
-      if (learningPaths.length > 0) {
-        navigate(`/learning/paths/${learningPaths[0].id}`);
-      } else {
-        navigate('/dashboard');
+      
+      // Show success messages
+      toast.success('🎉 Welcome to AI Tutor! Your account is set up.');
+      
+      if (backgroundTasks.length > 0) {
+        toast(`🚀 ${backgroundTasks.length} learning path${backgroundTasks.length > 1 ? 's' : ''} queued for creation. You'll be notified when they're ready!`, {
+          icon: '📋',
+          duration: 5000,
+        });
       }
+      
+      // Navigate to home/dashboard immediately
+      navigate('/dashboard');
+      
     } catch (error: any) {
       console.error('Onboarding error:', error);
-      toast.error(error.response?.data?.message || 'Failed to complete onboarding');
-    } finally {
-      setLoading(false);
-      setShowNotificationPrompt(false);
+      toast.error(error.response?.data?.message || 'Failed to complete onboarding. Please try again.');
     }
   };
 
@@ -181,11 +182,11 @@ const OnboardingPage: React.FC = () => {
       case 1:
         return formData.subjects.length > 0 || formData.customSubject.trim().length > 0;
       case 2:
-        return formData.learningAge !== '';
+        return formData.learningAge && formData.learningAge.length > 0;
       case 3:
-        return formData.skillLevel !== '';
+        return formData.skillLevel && formData.skillLevel.length > 0;
       case 4:
-        return formData.tutorPersonality !== '';
+        return formData.tutorPersonality && formData.tutorPersonality.length > 0;
       case 5:
         return formData.learningFormat.length > 0;
       default:
@@ -199,8 +200,8 @@ const OnboardingPage: React.FC = () => {
         return (
           <div className="space-y-6">
             <div className="text-center">
-              <h2 className="text-2xl font-bold text-gray-900">What would you like to learn?</h2>
-              <p className="mt-2 text-gray-600">Select the subjects you're interested in (you can choose multiple)</p>
+              <h2 className="text-2xl font-bold text-foreground">What would you like to learn?</h2>
+              <p className="mt-2 text-muted-foreground">Select the subjects you're interested in (you can choose multiple)</p>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {SUBJECTS.map((subject) => (
@@ -208,10 +209,10 @@ const OnboardingPage: React.FC = () => {
                   key={subject}
                   type="button"
                   onClick={() => handleSubjectToggle(subject)}
-                  className={`p-3 text-sm font-medium rounded-lg border-2 transition-colors ${
+                  className={`p-3 text-sm font-medium rounded-lg border-2 transition-all duration-300 ${
                     formData.subjects.includes(subject)
-                      ? 'border-primary-500 bg-primary-50 text-primary-700'
-                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                      ? 'border-primary bg-primary/20 text-primary shadow-lg shadow-primary/25 ring-2 ring-primary/30'
+                      : 'border-border bg-card text-card-foreground hover:border-primary/50 hover:bg-accent hover:shadow-md'
                   }`}
                 >
                   {subject}
@@ -221,7 +222,7 @@ const OnboardingPage: React.FC = () => {
             
             {/* Custom Subject */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Or enter any other subject or course to learn
               </label>
               <input
@@ -238,7 +239,7 @@ const OnboardingPage: React.FC = () => {
             </div>
 
             {formData.subjects.length > 0 && (
-              <div className="text-center text-sm text-gray-600">
+              <div className="text-center text-sm text-muted-foreground">
                 Selected: {formData.subjects.join(', ')}
               </div>
             )}
@@ -249,8 +250,8 @@ const OnboardingPage: React.FC = () => {
         return (
           <div className="space-y-6">
             <div className="text-center">
-              <h2 className="text-2xl font-bold text-gray-900">What's your age group?</h2>
-              <p className="mt-2 text-gray-600">This helps us tailor the content to your level</p>
+              <h2 className="text-2xl font-bold text-foreground">What's your age group?</h2>
+              <p className="mt-2 text-muted-foreground">This helps us tailor the content to your level</p>
             </div>
             <div className="space-y-3">
               {LEARNING_AGES.map((age) => (
@@ -258,14 +259,18 @@ const OnboardingPage: React.FC = () => {
                   key={age.value}
                   type="button"
                   onClick={() => setFormData(prev => ({ ...prev, learningAge: age.value as any }))}
-                  className={`w-full p-4 text-left rounded-lg border-2 transition-colors ${
+                  className={`w-full p-4 text-left rounded-lg border-2 transition-all duration-300 ${
                     formData.learningAge === age.value
-                      ? 'border-primary-500 bg-primary-50'
-                      : 'border-gray-200 bg-white hover:border-gray-300'
+                      ? 'border-primary bg-primary/20 shadow-lg shadow-primary/25 ring-2 ring-primary/30 transform scale-[1.02]'
+                      : 'border-border bg-card hover:border-primary/50 hover:bg-accent hover:shadow-md hover:transform hover:scale-[1.01]'
                   }`}
                 >
-                  <div className="font-medium text-gray-900">{age.label}</div>
-                  <div className="text-sm text-gray-600">{age.description}</div>
+                  <div className={`font-medium ${
+                    formData.learningAge === age.value ? 'text-primary' : 'text-foreground'
+                  }`}>{age.label}</div>
+                  <div className={`text-sm ${
+                    formData.learningAge === age.value ? 'text-primary/80' : 'text-muted-foreground'
+                  }`}>{age.description}</div>
                 </button>
               ))}
             </div>
@@ -276,8 +281,8 @@ const OnboardingPage: React.FC = () => {
         return (
           <div className="space-y-6">
             <div className="text-center">
-              <h2 className="text-2xl font-bold text-gray-900">What's your skill level?</h2>
-              <p className="mt-2 text-gray-600">Be honest - we'll adjust the difficulty accordingly</p>
+              <h2 className="text-2xl font-bold text-foreground">What's your skill level?</h2>
+              <p className="mt-2 text-muted-foreground">Be honest - we'll adjust the difficulty accordingly</p>
             </div>
             <div className="space-y-3">
               {SKILL_LEVELS.map((level) => (
@@ -285,14 +290,18 @@ const OnboardingPage: React.FC = () => {
                   key={level.value}
                   type="button"
                   onClick={() => setFormData(prev => ({ ...prev, skillLevel: level.value as any }))}
-                  className={`w-full p-4 text-left rounded-lg border-2 transition-colors ${
+                  className={`w-full p-4 text-left rounded-lg border-2 transition-all duration-300 ${
                     formData.skillLevel === level.value
-                      ? 'border-primary-500 bg-primary-50'
-                      : 'border-gray-200 bg-white hover:border-gray-300'
+                      ? 'border-primary bg-primary/20 shadow-lg shadow-primary/25 ring-2 ring-primary/30 transform scale-[1.02]'
+                      : 'border-border bg-card hover:border-primary/50 hover:bg-accent hover:shadow-md hover:transform hover:scale-[1.01]'
                   }`}
                 >
-                  <div className="font-medium text-gray-900">{level.label}</div>
-                  <div className="text-sm text-gray-600">{level.description}</div>
+                  <div className={`font-medium ${
+                    formData.skillLevel === level.value ? 'text-primary' : 'text-foreground'
+                  }`}>{level.label}</div>
+                  <div className={`text-sm ${
+                    formData.skillLevel === level.value ? 'text-primary/80' : 'text-muted-foreground'
+                  }`}>{level.description}</div>
                 </button>
               ))}
             </div>
@@ -303,8 +312,8 @@ const OnboardingPage: React.FC = () => {
         return (
           <div className="space-y-6">
             <div className="text-center">
-              <h2 className="text-2xl font-bold text-gray-900">Choose your tutor personality</h2>
-              <p className="mt-2 text-gray-600">How would you like your AI tutor to interact with you?</p>
+              <h2 className="text-2xl font-bold text-foreground">Choose your tutor personality</h2>
+              <p className="mt-2 text-muted-foreground">How would you like your AI tutor to interact with you?</p>
             </div>
             <div className="space-y-3">
               {TUTOR_PERSONALITIES.map((personality) => (
@@ -312,14 +321,18 @@ const OnboardingPage: React.FC = () => {
                   key={personality.value}
                   type="button"
                   onClick={() => setFormData(prev => ({ ...prev, tutorPersonality: personality.value as any }))}
-                  className={`w-full p-4 text-left rounded-lg border-2 transition-colors ${
+                  className={`w-full p-4 text-left rounded-lg border-2 transition-all duration-300 ${
                     formData.tutorPersonality === personality.value
-                      ? 'border-primary-500 bg-primary-50'
-                      : 'border-gray-200 bg-white hover:border-gray-300'
+                      ? 'border-primary bg-primary/20 shadow-lg shadow-primary/25 ring-2 ring-primary/30 transform scale-[1.02]'
+                      : 'border-border bg-card hover:border-primary/50 hover:bg-accent hover:shadow-md hover:transform hover:scale-[1.01]'
                   }`}
                 >
-                  <div className="font-medium text-gray-900">{personality.label}</div>
-                  <div className="text-sm text-gray-600">{personality.description}</div>
+                  <div className={`font-medium ${
+                    formData.tutorPersonality === personality.value ? 'text-primary' : 'text-foreground'
+                  }`}>{personality.label}</div>
+                  <div className={`text-sm ${
+                    formData.tutorPersonality === personality.value ? 'text-primary/80' : 'text-muted-foreground'
+                  }`}>{personality.description}</div>
                 </button>
               ))}
             </div>
@@ -330,8 +343,8 @@ const OnboardingPage: React.FC = () => {
         return (
           <div className="space-y-6">
             <div className="text-center">
-              <h2 className="text-2xl font-bold text-gray-900">How do you prefer to learn?</h2>
-              <p className="mt-2 text-gray-600">Select all formats that work best for you</p>
+              <h2 className="text-2xl font-bold text-foreground">How do you prefer to learn?</h2>
+              <p className="mt-2 text-muted-foreground">Select all formats that work best for you</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {LEARNING_FORMATS.map((format) => (
@@ -339,26 +352,30 @@ const OnboardingPage: React.FC = () => {
                   key={format.value}
                   type="button"
                   onClick={() => handleFormatToggle(format.value)}
-                  className={`p-4 text-left rounded-lg border-2 transition-colors ${
+                  className={`p-4 text-left rounded-lg border-2 transition-all duration-300 ${
                     formData.learningFormat.includes(format.value as any)
-                      ? 'border-primary-500 bg-primary-50'
-                      : 'border-gray-200 bg-white hover:border-gray-300'
+                      ? 'border-primary bg-primary/20 shadow-lg shadow-primary/25 ring-2 ring-primary/30 transform scale-[1.02]'
+                      : 'border-border bg-card hover:border-primary/50 hover:bg-accent hover:shadow-md hover:transform hover:scale-[1.01]'
                   }`}
                 >
-                  <div className="font-medium text-gray-900">{format.label}</div>
-                  <div className="text-sm text-gray-600">{format.description}</div>
+                  <div className={`font-medium ${
+                    formData.learningFormat.includes(format.value as any) ? 'text-primary' : 'text-foreground'
+                  }`}>{format.label}</div>
+                  <div className={`text-sm ${
+                    formData.learningFormat.includes(format.value as any) ? 'text-primary/80' : 'text-muted-foreground'
+                  }`}>{format.description}</div>
                 </button>
               ))}
             </div>
             {formData.learningFormat.length > 0 && (
-              <div className="text-center text-sm text-gray-600">
+              <div className="text-center text-sm text-muted-foreground">
                 Selected: {formData.learningFormat.join(', ')}
               </div>
             )}
 
             {/* User Preferences */}
-            <div className="border-t border-gray-200 pt-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="border-t border-border pt-6">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Additional Preferences (Optional)
               </label>
               <textarea
@@ -368,7 +385,7 @@ const OnboardingPage: React.FC = () => {
                 rows={4}
                 className="textarea"
               />
-              <p className="mt-2 text-sm text-gray-500">
+              <p className="mt-2 text-sm text-muted-foreground">
                 Tell us how you'd like to learn and we'll personalize your experience accordingly.
               </p>
             </div>
@@ -380,36 +397,7 @@ const OnboardingPage: React.FC = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-2xl mx-auto">
-          <div className="text-center mb-8">
-            <div className="flex justify-center mb-4">
-              <div className="flex items-center space-x-2">
-                <BookOpen className="h-10 w-10 text-primary" />
-                <h1 className="text-3xl font-bold gradient-text">AI Tutor</h1>
-              </div>
-            </div>
-            <h2 className="text-xl text-muted-foreground">
-              Welcome, {user?.firstName}! Setting up your personalized experience...
-            </h2>
-          </div>
 
-          <div className="card">
-            <div className="card-content p-8">
-              <EnhancedLoadingSpinner
-                type="onboarding"
-                title={formData.subjects.join(', ') || formData.customSubject}
-                showNotificationPrompt={showNotificationPrompt}
-                onNotificationPermissionRequest={handleNotificationPermissionRequest}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background py-12 px-4 sm:px-6 lg:px-8">
@@ -428,7 +416,7 @@ const OnboardingPage: React.FC = () => {
 
         {/* Progress bar */}
         <div className="mb-8">
-          <div className="flex justify-between text-sm text-gray-600 mb-2">
+          <div className="flex justify-between text-sm text-muted-foreground mb-2">
             <span>Step {currentStep} of {totalSteps}</span>
             <span>{Math.round((currentStep / totalSteps) * 100)}% complete</span>
           </div>
@@ -473,15 +461,16 @@ const OnboardingPage: React.FC = () => {
             <button
               type="button"
               onClick={handleSubmit}
-              disabled={!canProceed() || loading}
+              disabled={!canProceed()}
               className="btn-primary btn-lg flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading && <LoadingSpinner size="sm" />}
               <span>Complete Setup</span>
             </button>
           )}
         </div>
       </div>
+
+
     </div>
   );
 };

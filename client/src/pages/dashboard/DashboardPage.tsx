@@ -158,7 +158,7 @@ const DashboardPage: React.FC = () => {
               transition={{ duration: 0.5, delay: 0.3 }}
             >
               <Link to="/chat">
-                <Button variant="default" size="md" icon={<Brain className="h-4 w-4" />} className="bg-white/20 hover:bg-white/30 text-white border-0 backdrop-blur-sm">
+                <Button variant="primary" size="md" icon={<Brain className="h-4 w-4" />} className="bg-white/20 hover:bg-white/30 text-white border-0 backdrop-blur-sm">
                   AI Chat
                 </Button>
               </Link>
@@ -331,7 +331,7 @@ const DashboardPage: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Continue Learning */}
         <div className="lg:col-span-2">
-          <div className="card">
+          <div className="card h">
             <div className="card-header">
               <div className="flex items-center justify-between">
                 <h3 className="card-title">Continue Learning</h3>
@@ -394,7 +394,7 @@ const DashboardPage: React.FC = () => {
                   <p className="text-muted-foreground mb-4">
                     Start a new learning path to begin your journey
                   </p>
-                  <Link to="/learning" className="btn-primary">
+                  <Link to="/learning" className="btn-primary p-2">
                     <Plus className="h-4 w-4 mr-2" />
                     Start Learning
                   </Link>

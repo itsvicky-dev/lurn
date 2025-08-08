@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 
 export interface BackgroundTask {
   id: string;
-  type: 'learning-path' | 'modules' | 'topics' | 'course';
+  type: 'learning-path' | 'modules' | 'topics' | 'course' | 'onboarding-path';
   title: string;
   status: 'pending' | 'in-progress' | 'completed' | 'failed';
   progress: number;
@@ -12,6 +12,7 @@ export interface BackgroundTask {
   endTime?: number;
   error?: string;
   result?: any;
+  source?: 'onboarding' | 'manual' | 'enhanced';
 }
 
 class BackgroundTaskService {
@@ -46,23 +47,30 @@ class BackgroundTaskService {
     return `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
-  async createLearningPathInBackground(subject: string, preferences?: any): Promise<string> {
+  async createLearningPathInBackground(subject: string, preferences?: any, source: 'onboarding' | 'manual' | 'enhanced' = 'manual'): Promise<string> {
     const taskId = this.generateTaskId();
     const task: BackgroundTask = {
       id: taskId,
-      type: 'learning-path',
+      type: source === 'onboarding' ? 'onboarding-path' : 'learning-path',
       title: subject,
       status: 'in-progress',
       progress: 0,
       startTime: Date.now(),
+      source: source,
     };
 
     this.tasks.set(taskId, task);
     this.notifyListeners();
 
     try {
-      // Show initial toast
-      toast.success(`🚀 Creating learning path for "${subject}" in the background!`);
+      // Show initial toast based on source
+      const toastMessage = source === 'onboarding' 
+        ? `🎯 Queued learning path for "${subject}" from onboarding!`
+        : source === 'enhanced'
+        ? `🚀 Creating enhanced learning path for "${subject}" in the background!`
+        : `🚀 Creating learning path for "${subject}" in the background!`;
+      
+      toast.success(toastMessage);
       
       // Start progress simulation
       this.simulateProgress(taskId, 120000); // 2 minutes estimated
@@ -269,6 +277,12 @@ class BackgroundTaskService {
         `🎯 Creating learning objectives... ${progress}%`,
         `📚 Structuring your path... ${progress}%`,
         `✨ Finalizing details... ${progress}%`,
+      ],
+      'onboarding-path': [
+        `🎯 Setting up your personalized path... ${progress}%`,
+        `📚 Building curriculum structure... ${progress}%`,
+        `🧠 Tailoring content to your level... ${progress}%`,
+        `✨ Preparing your learning journey... ${progress}%`,
       ],
       'modules': [
         `🔍 Analyzing course structure... ${progress}%`,

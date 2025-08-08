@@ -4,6 +4,7 @@ import { useLearning } from '../../contexts/LearningContext';
 import type { LearningPath } from '../../types';
 import apiService from '../../services/api';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
+import { formatLearningPathDuration } from '../../utils/durationUtils';
 import toast from 'react-hot-toast';
 import { 
   BookOpen, 
@@ -23,6 +24,8 @@ const LearningPathDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [loadingMoreModules, setLoadingMoreModules] = useState(false);
 
+
+
   useEffect(() => {
     const loadLearningPath = async () => {
       if (!pathId) return;
@@ -34,13 +37,14 @@ const LearningPathDetailPage: React.FC = () => {
         setCurrentPath(learningPath);
       } catch (error) {
         console.error('Failed to load learning path:', error);
+        toast.error('Failed to load learning path');
       } finally {
         setLoading(false);
       }
     };
 
     loadLearningPath();
-  }, [pathId, setCurrentPath]);
+  }, [pathId]); // Remove setCurrentPath from dependencies to prevent infinite loops
 
   const handleLoadMoreModules = async () => {
     if (!pathId || !learningPath || loadingMoreModules) return;
@@ -106,7 +110,7 @@ const LearningPathDetailPage: React.FC = () => {
         <div className="card">
           <div className="card-content p-4 text-center">
             <Clock className="h-8 w-8 text-success-600 mx-auto mb-2" />
-            <div className="text-2xl font-bold text-foreground">{learningPath.estimatedDuration}h</div>
+            <div className="text-2xl font-bold text-foreground">{formatLearningPathDuration(learningPath.estimatedDuration)}</div>
             <div className="text-sm text-muted-foreground">Estimated</div>
           </div>
         </div>

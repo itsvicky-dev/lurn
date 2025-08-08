@@ -168,7 +168,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
         });
       }
       
-      toast.info('Hint revealed! Remember, using hints affects your score.');
+      toast.success('Hint revealed! Remember, using hints affects your score.');
     } catch (error: any) {
       console.error('Failed to use hint:', error);
       toast.error('Failed to get hint');
@@ -180,7 +180,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
       await apiService.abandonGame(sessionId);
       setCurrentSession(null);
       setCurrentGame(null);
-      toast.info('Game abandoned');
+      toast.success('Game abandoned');
     } catch (error: any) {
       console.error('Failed to abandon game:', error);
       toast.error('Failed to abandon game');

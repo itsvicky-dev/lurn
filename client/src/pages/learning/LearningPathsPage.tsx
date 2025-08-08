@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useLearning } from '../../contexts/LearningContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -15,7 +15,8 @@ import {
   Play, 
   CheckCircle,
   Filter,
-  Search
+  Search,
+  RefreshCw
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { safeFormatDateWithPrefix } from '../../utils/dateUtils';
@@ -23,7 +24,7 @@ import toast from 'react-hot-toast';
 
 const LearningPathsPage: React.FC = () => {
   const { user } = useAuth();
-  const { learningPaths, loading, loadingMessage, generateModules } = useLearning();
+  const { learningPaths, loading, loadingMessage, generateModules, refreshLearningPaths } = useLearning();
   const navigate = useNavigate();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEnhancedCreator, setShowEnhancedCreator] = useState(false);
@@ -32,6 +33,42 @@ const LearningPathsPage: React.FC = () => {
   const [generatingModules, setGeneratingModules] = useState<string | null>(null);
   const [generationProgress, setGenerationProgress] = useState('');
   const [filterDifficulty, setFilterDifficulty] = useState<string>('all');
+
+  // Auto-refresh when component mounts or when user returns to the page
+  useEffect(() => {
+    let isActive = true;
+    let visibilityTimeout: NodeJS.Timeout | null = null;
+    
+    const handleVisibilityChange = () => {
+      if (!document.hidden && user?.isOnboarded && isActive) {
+        // Debounce visibility changes to prevent rapid API calls
+        if (visibilityTimeout) {
+          clearTimeout(visibilityTimeout);
+        }
+        visibilityTimeout = setTimeout(() => {
+          console.log('📱 Page became visible, refreshing learning paths...');
+          refreshLearningPaths();
+        }, 1000); // Wait 1 second before refreshing
+      }
+    };
+
+    // Only refresh on mount if we don't already have learning paths
+    if (user?.isOnboarded && learningPaths.length === 0) {
+      console.log('🚀 Component mounted, loading learning paths...');
+      refreshLearningPaths();
+    }
+
+    // Listen for visibility changes
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      isActive = false;
+      if (visibilityTimeout) {
+        clearTimeout(visibilityTimeout);
+      }
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [user?.isOnboarded]); // Remove refreshLearningPaths from dependencies to prevent infinite loops
 
   const filteredPaths = learningPaths.filter(path => {
     const matchesSearch = path.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -126,15 +163,22 @@ const LearningPathsPage: React.FC = () => {
         </div>
         <div className="flex items-center space-x-3">
           <button
+            onClick={() => refreshLearningPaths()}
+            className="btn-ghost btn-md flex items-center space-x-2 px-3 py-2 h-10"
+            title="Refresh learning paths"
+          >
+            <RefreshCw className="h-4 w-4" />
+          </button>
+          <button
             onClick={() => setShowCreateModal(true)}
-            className="btn-outline flex items-center space-x-2"
+            className="btn-outline btn-md flex items-center space-x-2 px-4 py-2 h-10"
           >
             <Plus className="h-4 w-4" />
             <span>Quick Path</span>
           </button>
           <button
             onClick={() => setShowEnhancedCreator(true)}
-            className="btn-primary flex items-center space-x-2"
+            className="btn-primary btn-md flex items-center space-x-2 px-4 py-2 h-10"
           >
             <BookOpen className="h-4 w-4" />
             <span>Enhanced Path</span>
@@ -222,22 +266,6 @@ const LearningPathsPage: React.FC = () => {
                 <p className="text-muted-foreground mb-6">
                   Create your first learning path to start your journey with AI Tutor
                 </p>
-                <div className="flex items-center space-x-3">
-                  <button
-                    onClick={() => setShowCreateModal(true)}
-                    className="btn-outline"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Quick Path
-                  </button>
-                  <button
-                    onClick={() => setShowEnhancedCreator(true)}
-                    className="btn-primary"
-                  >
-                    <BookOpen className="h-4 w-4 mr-2" />
-                    Enhanced Path
-                  </button>
-                </div>
               </>
             ) : (
               <>
@@ -254,7 +282,7 @@ const LearningPathsPage: React.FC = () => {
                     setFilterStatus('all');
                     setFilterDifficulty('all');
                   }}
-                  className="btn-outline"
+                  className="btn-outline btn-md px-4 py-2 h-10"
                 >
                   Clear Filters
                 </button>

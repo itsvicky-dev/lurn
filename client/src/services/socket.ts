@@ -1,5 +1,6 @@
 import { io, Socket } from 'socket.io-client';
 import { type ChatMessage } from '../types';
+import { handleSocketError, isSocketConnectionError } from '../utils/socketErrorHandler';
 
 class SocketService {
   private socket: Socket | null = null;
@@ -10,11 +11,17 @@ class SocketService {
       return;
     }
 
-    this.socket = io(import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000', {
+    const serverUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+    
+    this.socket = io(serverUrl, {
       auth: {
         token
       },
-      transports: ['websocket', 'polling']
+      transports: ['websocket', 'polling'],
+      timeout: 20000,
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionAttempts: 5
     });
 
     this.socket.on('connect', () => {
@@ -22,18 +29,36 @@ class SocketService {
       this.isConnected = true;
     });
 
-    this.socket.on('disconnect', () => {
-      console.log('Disconnected from server');
+    this.socket.on('disconnect', (reason) => {
+      console.log('Disconnected from server:', reason);
       this.isConnected = false;
     });
 
     this.socket.on('connect_error', (error) => {
-      console.error('Connection error:', error);
+      handleSocketError(error);
       this.isConnected = false;
     });
 
     this.socket.on('error', (error) => {
-      console.error('Socket error:', error);
+      if (isSocketConnectionError(error)) {
+        handleSocketError(error);
+      } else {
+        console.error('Socket error:', error);
+      }
+    });
+
+    this.socket.on('reconnect', (attemptNumber) => {
+      console.log('Reconnected to server after', attemptNumber, 'attempts');
+      this.isConnected = true;
+    });
+
+    this.socket.on('reconnect_error', (error) => {
+      handleSocketError(error);
+    });
+
+    this.socket.on('reconnect_failed', () => {
+      console.warn('Failed to reconnect to server after maximum attempts');
+      this.isConnected = false;
     });
   }
 

@@ -455,7 +455,7 @@ const GamesPage: React.FC = () => {
 
                         <Button
                           size="sm"
-                          variant={game.isUnlocked ? "default" : "outline"}
+                          variant={game.isUnlocked ? "primary" : "outline"}
                           disabled={!game.isUnlocked}
                           onClick={() => handleStartGame(game.id)}
                           icon={<Play className="h-3 w-3" />}

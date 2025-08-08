@@ -76,7 +76,9 @@ router.post('/visual-aids/:topicId', authenticate, requireOnboarding, async (req
         caption: video.title,
         description: video.description,
         source: video.source,
-        thumbnail: video.thumbnail
+        thumbnail: video.thumbnail,
+        channelTitle: video.channelTitle,
+        publishedAt: video.publishedAt
       });
     });
 

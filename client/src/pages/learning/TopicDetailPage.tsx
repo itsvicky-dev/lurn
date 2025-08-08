@@ -298,7 +298,7 @@ const TopicDetailPage: React.FC = () => {
 
   if (loading && !topic) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      <div className="min-h-screen bg-background">
         <EnhancedLoadingSpinner
           title={topicId ? `Topic ${topicId}` : 'Topic Content'}
           type='topics'
@@ -312,11 +312,11 @@ const TopicDetailPage: React.FC = () => {
   // Show error state with retry option
   if (error && !topic) {
     return (
-      <div className="p-6 text-center">
+      <div className="p-6 text-center bg-background min-h-screen">
         <div className="max-w-md mx-auto">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-            <h2 className="text-xl font-semibold text-red-900 mb-2">Failed to Load Topic</h2>
-            <p className="text-red-700 mb-4">{error}</p>
+          <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-6">
+            <h2 className="text-xl font-semibold text-destructive mb-2">Failed to Load Topic</h2>
+            <p className="text-destructive/80 mb-4">{error}</p>
             <div className="space-y-3">
               {canRetry && (
                 <button
@@ -340,7 +340,7 @@ const TopicDetailPage: React.FC = () => {
 
   if (!topic) {
     return (
-      <div className="p-6 text-center">
+      <div className="p-6 text-center bg-background min-h-screen">
         <h2 className="text-xl font-semibold text-foreground mb-2">Topic not found</h2>
         <Link to="/learning" className="btn-primary">
           Back to Learning Paths
@@ -350,7 +350,7 @@ const TopicDetailPage: React.FC = () => {
   }
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full bg-background">
       {/* Main Content */}
       <div className={`flex-1 overflow-auto ${showChat ? 'mr-80' : ''}`}>
         <div className="p-6 space-y-6">
@@ -370,7 +370,7 @@ const TopicDetailPage: React.FC = () => {
               </div>
               
               {isCompleted() ? (
-                <div className="flex items-center space-x-2 text-success-600">
+                <div className="flex items-center space-x-2 text-green-600 dark:text-green-400">
                   <CheckCircle className="h-5 w-5" />
                   <span className="font-medium">Completed</span>
                 </div>
@@ -378,7 +378,7 @@ const TopicDetailPage: React.FC = () => {
                 <button
                   onClick={handleCompleteTopic}
                   disabled={completing}
-                  className="btn-primary flex items-center space-x-2"
+                  className="btn-primary flex items-center space-x-2 p-2"
                 >
                   {completing && <LoadingSpinner size="sm" />}
                   <CheckCircle className="h-4 w-4" />
@@ -388,7 +388,7 @@ const TopicDetailPage: React.FC = () => {
               
               <button
                 onClick={() => setShowChat(!showChat)}
-                className="btn-outline flex items-center space-x-2"
+                className="btn-outline flex items-center space-x-2 p-2"
               >
                 <MessageCircle className="h-4 w-4" />
                 <span>AI Help</span>
@@ -456,11 +456,11 @@ const TopicDetailPage: React.FC = () => {
                   <ReactMarkdown
                     remarkPlugins={[remarkGfm]}
                     components={{
-                      code({ node, inline, className, children, ...props }) {
+                      code({ node, inline, className, children, ...props }: any) {
                         const match = /language-(\w+)/.exec(className || '');
                         return !inline && match ? (
                           <SyntaxHighlighter
-                            style={vscDarkPlus}
+                            style={vscDarkPlus as { [key: string]: React.CSSProperties }}
                             language={match[1]}
                             PreTag="div"
                             {...props}
@@ -526,7 +526,7 @@ const TopicDetailPage: React.FC = () => {
                         </div>
                         
                         {/* Visual suggestion hint for debugging */}
-                        {example.visualSuggestion && !hasVisuals && process.env.NODE_ENV === 'development' && (
+                        {example.visualSuggestion && !hasVisuals && import.meta.env.DEV && (
                           <div className="text-xs text-muted-foreground/70 italic">
                             Visual suggestion: {example.visualSuggestion}
                           </div>
@@ -611,7 +611,7 @@ const TopicDetailPage: React.FC = () => {
                     {topic.content.visualAids.filter(aid => aid.type === 'video').length > 0 && (
                       <div>
                         <h4 className="text-lg font-semibold text-foreground mb-4 flex items-center">
-                          <Video className="h-5 w-5 text-red-600 mr-2" />
+                          <Video className="h-5 w-5 text-destructive mr-2" />
                           Video Tutorials ({topic.content.visualAids.filter(aid => aid.type === 'video').length})
                         </h4>
                         <div className="space-y-6">
@@ -632,7 +632,7 @@ const TopicDetailPage: React.FC = () => {
                     {topic.content.visualAids.filter(aid => aid.type === 'chart' || aid.type === 'diagram').length > 0 && (
                       <div>
                         <h4 className="text-lg font-semibold text-foreground mb-4 flex items-center">
-                          <BarChart3 className="h-5 w-5 text-blue-600 mr-2" />
+                          <BarChart3 className="h-5 w-5 text-primary mr-2" />
                           Charts & Diagrams
                         </h4>
                         <div className="space-y-6">
@@ -671,7 +671,7 @@ const TopicDetailPage: React.FC = () => {
                 </div>
                 <div className="card-content">
                   <div className="text-center py-8">
-                    <div className="flex flex-col items-center space-y-4">
+                    <div className="flex flex-col items-center space-y-4 m-auto">
                       <div className="bg-muted rounded-full p-4">
                         <Image className="h-8 w-8 text-muted-foreground" />
                       </div>
@@ -680,16 +680,16 @@ const TopicDetailPage: React.FC = () => {
                         <p className="text-muted-foreground mb-4 max-w-md">
                           We can generate relevant images and videos to help you understand this topic better.
                         </p>
+                      </div>
                         <button
                           onClick={handleGenerateVisualAids}
                           disabled={generatingVisualAids}
-                          className="btn-primary flex items-center space-x-2"
+                          className="btn-primary flex items-center space-x-2 p-2"
                         >
                           {generatingVisualAids && <LoadingSpinner size="sm" />}
                           <Image className="h-4 w-4" />
                           <span>{generatingVisualAids ? 'Generating Visual Aids...' : 'Generate Visual Aids'}</span>
                         </button>
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -743,7 +743,7 @@ const TopicDetailPage: React.FC = () => {
                         </div>
                         
                         {/* Visual suggestion hint for debugging */}
-                        {example.visualSuggestion && !hasVisuals && process.env.NODE_ENV === 'development' && (
+                        {example.visualSuggestion && !hasVisuals && import.meta.env.DEV && (
                           <div className="text-xs text-muted-foreground/70 italic mt-2">
                             Visual suggestion: {example.visualSuggestion}
                           </div>

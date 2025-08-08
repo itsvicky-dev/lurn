@@ -237,8 +237,8 @@ const MinimalLayout: React.FC = () => {
                       alt={`${user.firstName} ${user.lastName}`}
                     />
                   ) : (
-                    <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
-                      <span className="text-primary-foreground font-medium text-sm">
+                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-muted-foreground/20 to-muted-foreground/30 border border-border flex items-center justify-center">
+                      <span className="text-foreground font-medium text-sm">
                         {user?.firstName?.[0]}{user?.lastName?.[0]}
                       </span>
                     </div>

@@ -44,7 +44,7 @@ const Sidebar: React.FC = () => {
 
       {/* Logo */}
       <motion.div
-        className="flex items-center h-16 px-6 border-b border-border relative z-10"
+        className="flex items-center h-16 px-6 border-b border-border relative z-10 py-10"
         initial={{ y: -10, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.3, delay: 0.1 }}
@@ -85,8 +85,8 @@ const Sidebar: React.FC = () => {
                 alt={`${user.firstName} ${user.lastName}`}
               />
             ) : (
-              <div className="h-12 w-12 rounded-full bg-gradient-to-br from-primary-semantic to-accent-semantic flex items-center justify-center shadow-glow-sm">
-                <span className="text-primary-foreground font-bold font-robotic text-lg">
+              <div className="h-12 w-12 rounded-full bg-gradient-to-br from-muted-foreground/20 to-muted-foreground/30 border border-border flex items-center justify-center shadow-glow-sm">
+                <span className="text-foreground font-bold font-robotic text-lg">
                   {user?.firstName?.[0]}{user?.lastName?.[0]}
                 </span>
               </div>

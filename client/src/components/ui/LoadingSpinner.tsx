@@ -35,7 +35,7 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
         <div className="relative">
           <motion.div
             className={clsx(
-              'rounded-full border-2 border-primary-500/30',
+              'rounded-full border-2 border-primary/30',
               sizeClasses[size]
             )}
             animate={{ rotate: 360 }}
@@ -43,16 +43,16 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
           />
           <motion.div
             className={clsx(
-              'absolute inset-0 rounded-full border-2 border-transparent border-t-primary-500',
+              'absolute inset-0 rounded-full border-2 border-transparent border-t-primary',
               sizeClasses[size]
             )}
             animate={{ rotate: 360 }}
             transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
-            style={{ boxShadow: '0 0 20px rgba(99, 102, 241, 0.5)' }}
+            style={{ filter: 'drop-shadow(0 0 10px hsl(var(--primary) / 0.3))' }}
           />
           <motion.div
             className={clsx(
-              'absolute inset-1 rounded-full bg-gradient-to-r from-primary-500/20 to-accent-500/20',
+              'absolute inset-1 rounded-full bg-gradient-to-r from-primary/20 to-accent/20',
               size === 'sm' ? 'inset-0.5' : size === 'md' ? 'inset-1' : 'inset-1.5'
             )}
             animate={{ 
@@ -65,7 +65,7 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
         {text && (
           <motion.p 
             className={clsx(
-              'font-robotic text-primary-400 tracking-wider',
+              'font-robotic text-primary tracking-wider',
               textSizeClasses[size]
             )}
             animate={{ opacity: [0.5, 1, 0.5] }}
@@ -84,7 +84,7 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
         <div className="relative">
           <motion.div
             className={clsx(
-              'rounded-full bg-gradient-to-r from-primary-500 to-accent-500',
+              'rounded-full bg-gradient-to-r from-primary to-accent',
               sizeClasses[size]
             )}
             animate={{ 
@@ -92,11 +92,11 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
               opacity: [0.7, 1, 0.7]
             }}
             transition={{ duration: 1, repeat: Infinity }}
-            style={{ boxShadow: '0 0 20px rgba(99, 102, 241, 0.5)' }}
+            style={{ filter: 'drop-shadow(0 0 15px hsl(var(--primary) / 0.4))' }}
           />
           <motion.div
             className={clsx(
-              'absolute inset-0 rounded-full bg-gradient-to-r from-primary-400 to-accent-400',
+              'absolute inset-0 rounded-full bg-gradient-to-r from-primary/80 to-accent/80',
               sizeClasses[size]
             )}
             animate={{ 
@@ -126,7 +126,7 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
             <motion.div
               key={i}
               className={clsx(
-                'rounded-full bg-primary-500',
+                'rounded-full bg-primary',
                 size === 'sm' ? 'h-2 w-2' : size === 'md' ? 'h-3 w-3' : 'h-4 w-4'
               )}
               animate={{
@@ -158,12 +158,12 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
     <div className={clsx('flex flex-col items-center space-y-3', className)}>
       <motion.div
         className={clsx(
-          'rounded-full border-2 border-muted border-t-primary-500',
+          'rounded-full border-2 border-muted border-t-primary',
           sizeClasses[size]
         )}
         animate={{ rotate: 360 }}
         transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-        style={{ boxShadow: '0 0 10px rgba(99, 102, 241, 0.3)' }}
+        style={{ filter: 'drop-shadow(0 0 8px hsl(var(--primary) / 0.25))' }}
       />
       {text && (
         <p className={clsx(

@@ -16,7 +16,8 @@ import {
   ChevronRight,
   Star,
   TrendingUp,
-  ArrowLeft
+  ArrowLeft,
+  LogOut
 } from 'lucide-react';
 import ThemeToggle from '../ui/ThemeToggle';
 import NotificationList from '../ui/NotificationList';
@@ -67,7 +68,7 @@ const navigation = [
 ];
 
 const CardLayout: React.FC = () => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [searchFocused, setSearchFocused] = useState(false);
@@ -246,33 +247,46 @@ const CardLayout: React.FC = () => {
               </div>
 
               {/* User Profile */}
-              <motion.div
-                className="flex items-center space-x-3 px-4 py-2 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer border border-border/50"
-                whileHover={{ scale: 1.02 }}
-              >
-                <div className="relative">
-                  {user?.avatar ? (
-                    <img
-                      className="h-10 w-10 rounded-full ring-2 ring-primary/20"
-                      src={user.avatar}
-                      alt={`${user.firstName} ${user.lastName}`}
-                    />
-                  ) : (
-                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-lg">
-                      <span className="text-primary-foreground font-bold">
-                        {user?.firstName?.[0]}{user?.lastName?.[0]}
-                      </span>
+              <div className="flex items-center space-x-2">
+                <motion.div
+                  className="flex items-center space-x-3 px-4 py-2 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer border border-border/50"
+                  whileHover={{ scale: 1.02 }}
+                >
+                  <div className="relative">
+                    {user?.avatar ? (
+                      <img
+                        className="h-10 w-10 rounded-full ring-2 ring-primary/20"
+                        src={user.avatar}
+                        alt={`${user.firstName} ${user.lastName}`}
+                      />
+                    ) : (
+                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-muted-foreground/20 to-muted-foreground/30 border border-border flex items-center justify-center shadow-lg">
+                        <span className="text-foreground font-bold">
+                          {user?.firstName?.[0]}{user?.lastName?.[0]}
+                        </span>
+                      </div>
+                    )}
+                    <div className="absolute -bottom-1 -right-1 h-4 w-4 bg-green-500 rounded-full border-2 border-card">
+                      <div className="h-full w-full bg-green-400 rounded-full animate-ping opacity-75" />
                     </div>
-                  )}
-                  <div className="absolute -bottom-1 -right-1 h-4 w-4 bg-green-500 rounded-full border-2 border-card">
-                    <div className="h-full w-full bg-green-400 rounded-full animate-ping opacity-75" />
                   </div>
-                </div>
-                <div className="hidden sm:block">
-                  <p className="text-sm font-semibold text-foreground">{user?.firstName} {user?.lastName}</p>
-                  <p className="text-xs text-muted-foreground">Online</p>
-                </div>
-              </motion.div>
+                  <div className="hidden sm:block">
+                    <p className="text-sm font-semibold text-foreground">{user?.firstName} {user?.lastName}</p>
+                    <p className="text-xs text-muted-foreground">Online</p>
+                  </div>
+                </motion.div>
+
+                {/* Logout Button */}
+                <motion.button
+                  onClick={logout}
+                  className="p-2 rounded-xl text-muted-foreground hover:text-error-400 hover:bg-error-500/10 transition-all duration-300 border border-transparent hover:border-error-500/20"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  title="Sign out"
+                >
+                  <LogOut className="h-5 w-5" />
+                </motion.button>
+              </div>
             </div>
           </div>
         </div>

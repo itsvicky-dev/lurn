@@ -462,8 +462,6 @@ Fibonacci(10): 55`;
               // Disable some features that might interfere with scrolling
               contextmenu: !readOnly,
               links: false,
-              // Disable scroll animations
-              smoothScrolling: false,
             }}
           />
         </div>

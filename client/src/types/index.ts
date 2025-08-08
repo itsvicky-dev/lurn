@@ -124,6 +124,12 @@ export interface TopicContent {
   realWorldExamples: RealWorldExample[];
   keyPoints: string[];
   summary: string;
+  sections?: any[];
+  inlineVisuals?: {
+    sections?: any[];
+    codeExamples?: any[];
+    realWorldExamples?: any[];
+  };
 }
 
 export interface CodeExample {
@@ -131,6 +137,7 @@ export interface CodeExample {
   code: string;
   explanation: string;
   isRunnable: boolean;
+  visualSuggestion?: string;
 }
 
 export interface VisualAid {
@@ -143,9 +150,10 @@ export interface VisualAid {
 export interface RealWorldExample {
   title: string;
   description: string;
+  explanation: string;
+  visualSuggestion?: string;
   code?: string;
   language?: string;
-  explanation: string;
 }
 
 export interface TopicUserProgress {

@@ -23,6 +23,9 @@ const Button: React.FC<ButtonProps> = ({
   className,
   disabled,
   children,
+  onClick,
+  type,
+  form,
   ...props
 }) => {
   const baseClasses = 'inline-flex items-center justify-center rounded-lg font-medium font-robotic tracking-wide transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background relative overflow-hidden';
@@ -54,9 +57,11 @@ const Button: React.FC<ButtonProps> = ({
         className
       )}
       disabled={disabled || loading}
+      onClick={onClick}
+      type={type}
+      form={form}
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
-      {...props}
     >
       {/* Background animation for cyber variant */}
       {variant === 'cyber' && (

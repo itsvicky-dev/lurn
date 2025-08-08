@@ -31,7 +31,11 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    origin: [
+      process.env.CLIENT_URL || "http://localhost:5173",
+      "http://localhost:5173",
+      "http://localhost:5174"
+    ],
     methods: ["GET", "POST"]
   }
 });
@@ -42,7 +46,11 @@ connectDB();
 // Security middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.CLIENT_URL || "http://localhost:5173",
+  origin: [
+    process.env.CLIENT_URL || "http://localhost:5173",
+    "http://localhost:5173",
+    "http://localhost:5174"
+  ],
   credentials: true
 }));
 
@@ -68,12 +76,12 @@ app.use('/api/learning/paths', (req, res, next) => {
   next();
 });
 
-// Increase timeout for learning path creation
-app.use('/api/learning/paths', (req, res, next) => {
+app.use('/api/user/onboarding', (req, res, next) => {
   if (req.method === 'POST') {
-    // Set longer timeout for learning path creation (2 minutes)
-    req.setTimeout(120000);
-    res.setTimeout(120000);
+    // Set longer timeout for onboarding
+    req.setTimeout(180000); // 3 minutes
+    res.setTimeout(180000); // 3 minutes
+    console.log('🕐 Extended timeout set for user onboarding');
   }
   next();
 });

@@ -48,13 +48,20 @@ export const LearningProvider: React.FC<LearningProviderProps> = ({ children }) 
   const [currentTopic, setCurrentTopic] = useState<Topic | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const loadLearningPaths = async () => {
-    if (!user?.isOnboarded) return;
+    if (!user?.isOnboarded || isRefreshing) {
+      console.log('Skipping loadLearningPaths:', { isOnboarded: user?.isOnboarded, isRefreshing });
+      return;
+    }
     
     try {
+      setIsRefreshing(true);
       setLoading(true);
       setLoadingMessage('Loading your learning paths...');
+      
+      console.log('🔄 Loading learning paths...');
       
       // Add a small delay to show the loading animation
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -120,12 +127,14 @@ export const LearningProvider: React.FC<LearningProviderProps> = ({ children }) 
       
       setLearningPaths(processedPaths);
       setLoadingMessage('');
+      console.log('✅ Learning paths loaded successfully:', processedPaths.length);
     } catch (error: any) {
-      console.error('Failed to load learning paths:', error);
+      console.error('❌ Failed to load learning paths:', error);
       toast.error('Failed to load learning paths');
       setLoadingMessage('');
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
   };
 
@@ -218,8 +227,13 @@ export const LearningProvider: React.FC<LearningProviderProps> = ({ children }) 
         return updatedPath;
       }));
       
-      // Also refresh from server to ensure consistency
-      setTimeout(() => refreshLearningPaths(), 1000);
+      // Also refresh from server to ensure consistency (but avoid if already loading)
+      setTimeout(() => {
+        if (!loading && !isRefreshing) {
+          console.log('🔄 Refreshing learning paths after topic completion');
+          refreshLearningPaths();
+        }
+      }, 1000);
       
       // Dispatch custom event to refresh dashboard stats
       window.dispatchEvent(new CustomEvent('userProgressUpdated'));
@@ -233,21 +247,95 @@ export const LearningProvider: React.FC<LearningProviderProps> = ({ children }) 
   };
 
   const createLearningPath = async (subject: string, preferences?: any): Promise<LearningPath> => {
+    let createdPath: LearningPath | null = null;
+    
     try {
       setLoading(true);
-      const { learningPath } = await apiService.createLearningPath({ subject, preferences });
+      setLoadingMessage(`Creating learning path for ${subject}...`);
       
-      // Add to local state
-      setLearningPaths(prev => [learningPath, ...prev]);
+      const response = await apiService.createLearningPath({ subject, preferences });
+      createdPath = response.learningPath;
+      
+      // Add to local state immediately after successful creation
+      setLearningPaths(prev => [createdPath!, ...prev]);
       
       toast.success(`Learning path for ${subject} created!`);
-      return learningPath;
+      
+      // Refresh the learning paths to ensure we have the latest data
+      try {
+        await refreshLearningPaths();
+      } catch (refreshError) {
+        console.warn('Failed to refresh learning paths after creation:', refreshError);
+        // Don't throw here as the path was already created and added to state
+      }
+      
+      return createdPath;
     } catch (error: any) {
       console.error('Failed to create learning path:', error);
-      toast.error('Failed to create learning path');
+      
+      // Check if it's a timeout error
+      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+        console.warn('Timeout error occurred, checking if path was actually created...');
+        
+        // Wait a moment then try to refresh learning paths to see if it was actually created
+        try {
+          await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3 seconds for timeout
+          const { learningPaths: updatedPaths } = await apiService.getLearningPaths();
+          
+          // Check if a new path was created for this subject
+          const newPath = updatedPaths.find(path => 
+            path.subject.toLowerCase() === subject.toLowerCase() && 
+            !learningPaths.some(existing => existing.id === path.id)
+          );
+          
+          if (newPath) {
+            console.log('Path was actually created despite timeout');
+            setLearningPaths(updatedPaths);
+            toast.success(`Learning path for ${subject} was created successfully! (Process completed in background)`);
+            return newPath;
+          } else {
+            toast.error('Learning path creation timed out. The process may still be running. Please check again in a few minutes.');
+          }
+        } catch (refreshError) {
+          console.error('Failed to refresh after timeout:', refreshError);
+          toast.error('Learning path creation timed out. Please check your learning paths later or try again.');
+        }
+      }
+      // Check if it's a network error but the path might have been created
+      else if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
+        console.warn('Network error occurred, checking if path was actually created...');
+        
+        // Wait a moment then try to refresh learning paths to see if it was actually created
+        try {
+          await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+          const { learningPaths: updatedPaths } = await apiService.getLearningPaths();
+          
+          // Check if a new path was created for this subject
+          const newPath = updatedPaths.find(path => 
+            path.subject.toLowerCase() === subject.toLowerCase() && 
+            !learningPaths.some(existing => existing.id === path.id)
+          );
+          
+          if (newPath) {
+            console.log('Path was actually created despite network error');
+            setLearningPaths(updatedPaths);
+            toast.success(`Learning path for ${subject} was created successfully! (Network issue resolved)`);
+            return newPath;
+          } else {
+            toast.error('Network error occurred and learning path was not created. Please try again.');
+          }
+        } catch (refreshError) {
+          console.error('Failed to refresh after network error:', refreshError);
+          toast.error('Network error occurred. The learning path may have been created. Please refresh the page to check.');
+        }
+      } else {
+        toast.error(error.response?.data?.message || 'Failed to create learning path');
+      }
+      
       throw error;
     } finally {
       setLoading(false);
+      setLoadingMessage('');
     }
   };
 
@@ -273,6 +361,7 @@ export const LearningProvider: React.FC<LearningProviderProps> = ({ children }) 
   };
 
   const refreshLearningPaths = async () => {
+    console.log('🔄 Refresh learning paths requested');
     await loadLearningPaths();
   };
 
@@ -320,6 +409,23 @@ export const LearningProvider: React.FC<LearningProviderProps> = ({ children }) 
     if (user?.isOnboarded) {
       loadLearningPaths();
     }
+  }, [user?.isOnboarded]);
+
+  // Handle network status changes only (remove visibility change from context)
+  useEffect(() => {
+    if (!user?.isOnboarded) return;
+
+    const handleOnline = () => {
+      console.log('Network connection restored, refreshing learning paths...');
+      refreshLearningPaths().catch(console.error);
+    };
+
+    // Listen for network status changes only
+    window.addEventListener('online', handleOnline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+    };
   }, [user?.isOnboarded]);
 
   const value: LearningContextType = {

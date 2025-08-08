@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { useLearning } from '../../contexts/LearningContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { backgroundTaskService } from '../../services/backgroundTaskService';
+import { notificationService } from '../../services/notificationService';
 import apiService from '../../services/api';
-import LoadingSpinner from '../ui/LoadingSpinner';
+
 import toast from 'react-hot-toast';
 import { 
   BookOpen, 
@@ -30,14 +32,11 @@ const EnhancedLearningPathCreator: React.FC<EnhancedLearningPathCreatorProps> = 
   const { user } = useAuth();
   const [subject, setSubject] = useState('');
   const [batchSize, setBatchSize] = useState<'initial' | 'extended'>('initial');
-  const [loading, setLoading] = useState(false);
-  const [loadingMessage, setLoadingMessage] = useState('');
-  const [retryCount, setRetryCount] = useState(0);
   
   // User preferences state
   const [skillLevel, setSkillLevel] = useState(user?.preferences?.skillLevel || 'beginner');
   const [learningAge, setLearningAge] = useState(user?.preferences?.learningAge || 'adult');
-  const [tutorPersonality, setTutorPersonality] = useState(user?.preferences?.tutorPersonality || 'friendly');
+  const [tutorPersonality, setTutorPersonality] = useState<'friendly' | 'strict' | 'funny' | 'professional' | 'encouraging'>(user?.preferences?.tutorPersonality || 'friendly');
   const [learningFormat, setLearningFormat] = useState<string[]>(user?.preferences?.learningFormat || ['text', 'examples']);
 
   const batchOptions = [
@@ -75,8 +74,7 @@ const EnhancedLearningPathCreator: React.FC<EnhancedLearningPathCreatorProps> = 
   const tutorPersonalityOptions = [
     { value: 'friendly', label: 'Friendly', description: 'Warm and encouraging', icon: '😊' },
     { value: 'professional', label: 'Professional', description: 'Direct and efficient', icon: '👔' },
-    { value: 'enthusiastic', label: 'Enthusiastic', description: 'Energetic and motivating', icon: '🎉' },
-    { value: 'patient', label: 'Patient', description: 'Calm and understanding', icon: '🧘' },
+    { value: 'encouraging', label: 'Encouraging', description: 'Energetic and motivating', icon: '🎉' },
     { value: 'strict', label: 'Strict', description: 'Disciplined and focused', icon: '📏' },
     { value: 'funny', label: 'Funny', description: 'Humorous and entertaining', icon: '😄' }
   ];
@@ -101,17 +99,17 @@ const EnhancedLearningPathCreator: React.FC<EnhancedLearningPathCreatorProps> = 
     });
   };
 
-  const handleSkillLevelChange = (level: string) => {
+  const handleSkillLevelChange = (level: 'beginner' | 'intermediate' | 'advanced' | 'expert') => {
     console.log('Changing skill level to:', level);
     setSkillLevel(level);
   };
 
-  const handleLearningAgeChange = (age: string) => {
+  const handleLearningAgeChange = (age: 'child' | 'teenager' | 'adult' | 'senior') => {
     console.log('Changing learning age to:', age);
     setLearningAge(age);
   };
 
-  const handleTutorPersonalityChange = (personality: string) => {
+  const handleTutorPersonalityChange = (personality: 'friendly' | 'strict' | 'funny' | 'professional' | 'encouraging') => {
     console.log('Changing tutor personality to:', personality);
     setTutorPersonality(personality);
   };
@@ -135,54 +133,26 @@ const EnhancedLearningPathCreator: React.FC<EnhancedLearningPathCreatorProps> = 
     }
 
     try {
-      setLoading(true);
-      setLoadingMessage('🤖 Connecting to AI service...');
+      // Request notification permission
+      await notificationService.requestPermission();
       
-      // Add a timeout to update the loading message
-      const messageTimeout = setTimeout(() => {
-        setLoadingMessage('🧠 AI is generating your comprehensive learning path...');
-      }, 3000);
+      // Prepare preferences for background task
+      const preferences = { 
+        batchSize,
+        skillLevel,
+        learningAge,
+        tutorPersonality,
+        learningFormat
+      };
       
-      const messageTimeout2 = setTimeout(() => {
-        setLoadingMessage('⏳ This may take a few minutes for comprehensive content...');
-      }, 30000);
+      // Start background learning path creation
+      await backgroundTaskService.createLearningPathInBackground(
+        subject.trim(),
+        preferences,
+        'enhanced'
+      );
       
-      const messageTimeout3 = setTimeout(() => {
-        setLoadingMessage('🔄 Still working... Free AI models can be slower during peak times...');
-      }, 90000);
-      
-      try {
-        const { learningPath } = await apiService.createLearningPath({
-          subject: subject.trim(),
-          preferences: { 
-            batchSize,
-            skillLevel,
-            learningAge,
-            tutorPersonality,
-            learningFormat
-          }
-        });
-        
-        // Clear timeouts
-        clearTimeout(messageTimeout);
-        clearTimeout(messageTimeout2);
-        clearTimeout(messageTimeout3);
-        
-        setLoadingMessage('✅ Learning path created successfully!');
-      } catch (apiError) {
-        // Clear timeouts
-        clearTimeout(messageTimeout);
-        clearTimeout(messageTimeout2);
-        clearTimeout(messageTimeout3);
-        throw apiError;
-      }
-
-      addLearningPath(learningPath);
-      toast.success(`🎉 Created comprehensive learning path: "${learningPath.title}"`);
-      
-      if (onPathCreated) {
-        onPathCreated(learningPath);
-      }
+      toast.success('🚀 Enhanced learning path creation started! We\'ll notify you when it\'s ready.');
       
       // Reset form
       setSubject('');
@@ -192,27 +162,19 @@ const EnhancedLearningPathCreator: React.FC<EnhancedLearningPathCreatorProps> = 
       setTutorPersonality(user?.preferences?.tutorPersonality || 'friendly');
       setLearningFormat(user?.preferences?.learningFormat || ['text', 'examples']);
       
-    } catch (error: any) {
-      console.error('Failed to create learning path:', error);
-      
-      let errorMessage = 'Failed to create learning path';
-      
-      if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
-        errorMessage = '⏱️ Generation timed out. The AI is taking longer than expected due to high demand. Please try again in a few minutes or use a simpler subject name.';
-      } else if (error.response?.status === 429) {
-        errorMessage = '🚫 Rate limit reached. The free AI model has reached its usage limit. Please try again in a few hours.';
-      } else if (error.response?.status >= 500) {
-        errorMessage = '🔧 Server error. The AI service is temporarily unavailable. Please try again later.';
-      } else {
-        errorMessage = error.response?.data?.message || error.message || 'Failed to create learning path';
+      // Close the modal if callback is provided
+      if (onClose) {
+        onClose();
       }
       
-      toast.error(errorMessage, {
-        duration: 6000, // Show error longer for timeout messages
-      });
-    } finally {
-      setLoading(false);
-      setLoadingMessage('');
+    } catch (error: any) {
+      console.error('Failed to start background learning path creation:', error);
+      toast.error('Failed to start learning path creation. Please try again.');
+      
+      // Close the modal even on error since the user can try again from the main page
+      if (onClose) {
+        onClose();
+      }
     }
   };
 
@@ -229,9 +191,12 @@ const EnhancedLearningPathCreator: React.FC<EnhancedLearningPathCreatorProps> = 
           {onClose && (
             <button
               onClick={onClose}
-              className="text-muted-foreground hover:text-foreground"
+              className="text-muted-foreground hover:text-foreground p-2 rounded-lg hover:bg-accent transition-colors"
+              aria-label="Close"
             >
-              ×
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
             </button>
           )}
         </div>
@@ -251,7 +216,7 @@ const EnhancedLearningPathCreator: React.FC<EnhancedLearningPathCreatorProps> = 
               onChange={(e) => setSubject(e.target.value)}
               placeholder="e.g., Python, React, Machine Learning..."
               className="input w-full"
-              disabled={loading}
+
               required
             />
             <p className="text-xs text-muted-foreground mt-1">
@@ -261,7 +226,7 @@ const EnhancedLearningPathCreator: React.FC<EnhancedLearningPathCreatorProps> = 
 
           {/* Skill Level */}
           <div>
-            <label className="block text-sm font-medium mb-3">
+            <label className="block text-sm font-medium text-foreground mb-3">
               <User className="inline h-4 w-4 mr-2" />
               Skill Level
             </label>
@@ -269,18 +234,22 @@ const EnhancedLearningPathCreator: React.FC<EnhancedLearningPathCreatorProps> = 
               {skillLevelOptions.map((option) => (
                 <div
                   key={option.value}
-                  onClick={() => !loading && handleSkillLevelChange(option.value)}
-                  className={`p-3 rounded-lg border-2 text-left cursor-pointer transition-all ${
+                  onClick={() => handleSkillLevelChange(option.value as 'beginner' | 'intermediate' | 'advanced' | 'expert')}
+                  className={`p-3 rounded-lg border-2 text-left cursor-pointer transition-all duration-300 ${
                     skillLevel === option.value
-                      ? 'border-blue-500 bg-blue-50 text-blue-700'
-                      : 'border-gray-300 hover:border-blue-400 bg-white'
-                  } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      ? 'border-primary bg-primary/20 shadow-lg shadow-primary/25 ring-2 ring-primary/30 transform scale-[1.02]'
+                      : 'border-border bg-card hover:border-primary/50 hover:bg-accent hover:shadow-md hover:transform hover:scale-[1.01]'
+                  }`}
                 >
                   <div className="flex items-center space-x-2 mb-1">
                     <span className="text-lg">{option.icon}</span>
-                    <span className="font-medium">{option.label}</span>
+                    <span className={`font-medium ${
+                      skillLevel === option.value ? 'text-primary' : 'text-foreground'
+                    }`}>{option.label}</span>
                   </div>
-                  <p className="text-xs text-gray-600">{option.description}</p>
+                  <p className={`text-xs ${
+                    skillLevel === option.value ? 'text-primary/80' : 'text-muted-foreground'
+                  }`}>{option.description}</p>
                 </div>
               ))}
             </div>
@@ -288,7 +257,7 @@ const EnhancedLearningPathCreator: React.FC<EnhancedLearningPathCreatorProps> = 
 
           {/* Learning Age */}
           <div>
-            <label className="block text-sm font-medium mb-3">
+            <label className="block text-sm font-medium text-foreground mb-3">
               <Target className="inline h-4 w-4 mr-2" />
               Learning Age Group
             </label>
@@ -296,18 +265,22 @@ const EnhancedLearningPathCreator: React.FC<EnhancedLearningPathCreatorProps> = 
               {learningAgeOptions.map((option) => (
                 <div
                   key={option.value}
-                  onClick={() => !loading && handleLearningAgeChange(option.value)}
-                  className={`p-3 rounded-lg border-2 text-left cursor-pointer transition-all ${
+                  onClick={() => handleLearningAgeChange(option.value as 'child' | 'teenager' | 'adult' | 'senior')}
+                  className={`p-3 rounded-lg border-2 text-left cursor-pointer transition-all duration-300 ${
                     learningAge === option.value
-                      ? 'border-blue-500 bg-blue-50 text-blue-700'
-                      : 'border-gray-300 hover:border-blue-400 bg-white'
-                  } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      ? 'border-primary bg-primary/20 shadow-lg shadow-primary/25 ring-2 ring-primary/30 transform scale-[1.02]'
+                      : 'border-border bg-card hover:border-primary/50 hover:bg-accent hover:shadow-md hover:transform hover:scale-[1.01]'
+                  }`}
                 >
                   <div className="flex items-center space-x-2 mb-1">
                     <span className="text-lg">{option.icon}</span>
-                    <span className="font-medium">{option.label}</span>
+                    <span className={`font-medium ${
+                      learningAge === option.value ? 'text-primary' : 'text-foreground'
+                    }`}>{option.label}</span>
                   </div>
-                  <p className="text-xs text-gray-600">{option.description}</p>
+                  <p className={`text-xs ${
+                    learningAge === option.value ? 'text-primary/80' : 'text-muted-foreground'
+                  }`}>{option.description}</p>
                 </div>
               ))}
             </div>
@@ -315,7 +288,7 @@ const EnhancedLearningPathCreator: React.FC<EnhancedLearningPathCreatorProps> = 
 
           {/* Tutor Personality */}
           <div>
-            <label className="block text-sm font-medium mb-3">
+            <label className="block text-sm font-medium text-foreground mb-3">
               <Heart className="inline h-4 w-4 mr-2" />
               Tutor Personality
             </label>
@@ -323,18 +296,22 @@ const EnhancedLearningPathCreator: React.FC<EnhancedLearningPathCreatorProps> = 
               {tutorPersonalityOptions.map((option) => (
                 <div
                   key={option.value}
-                  onClick={() => !loading && handleTutorPersonalityChange(option.value)}
-                  className={`p-3 rounded-lg border-2 text-left cursor-pointer transition-all ${
+                  onClick={() => handleTutorPersonalityChange(option.value as 'friendly' | 'strict' | 'funny' | 'professional' | 'encouraging')}
+                  className={`p-3 rounded-lg border-2 text-left cursor-pointer transition-all duration-300 ${
                     tutorPersonality === option.value
-                      ? 'border-blue-500 bg-blue-50 text-blue-700'
-                      : 'border-gray-300 hover:border-blue-400 bg-white'
-                  } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      ? 'border-primary bg-primary/20 shadow-lg shadow-primary/25 ring-2 ring-primary/30 transform scale-[1.02]'
+                      : 'border-border bg-card hover:border-primary/50 hover:bg-accent hover:shadow-md hover:transform hover:scale-[1.01]'
+                  }`}
                 >
                   <div className="flex items-center space-x-2 mb-1">
                     <span className="text-lg">{option.icon}</span>
-                    <span className="font-medium">{option.label}</span>
+                    <span className={`font-medium ${
+                      tutorPersonality === option.value ? 'text-primary' : 'text-foreground'
+                    }`}>{option.label}</span>
                   </div>
-                  <p className="text-xs text-gray-600">{option.description}</p>
+                  <p className={`text-xs ${
+                    tutorPersonality === option.value ? 'text-primary/80' : 'text-muted-foreground'
+                  }`}>{option.description}</p>
                 </div>
               ))}
             </div>
@@ -342,7 +319,7 @@ const EnhancedLearningPathCreator: React.FC<EnhancedLearningPathCreatorProps> = 
 
           {/* Learning Format */}
           <div>
-            <label className="block text-sm font-medium mb-3">
+            <label className="block text-sm font-medium text-foreground mb-3">
               <Eye className="inline h-4 w-4 mr-2" />
               Preferred Learning Formats (Select multiple)
             </label>
@@ -350,29 +327,33 @@ const EnhancedLearningPathCreator: React.FC<EnhancedLearningPathCreatorProps> = 
               {learningFormatOptions.map((option) => (
                 <div
                   key={option.value}
-                  onClick={() => !loading && handleLearningFormatToggle(option.value)}
-                  className={`p-3 rounded-lg border-2 text-left cursor-pointer transition-all ${
+                  onClick={() => handleLearningFormatToggle(option.value)}
+                  className={`p-3 rounded-lg border-2 text-left cursor-pointer transition-all duration-300 ${
                     learningFormat.includes(option.value)
-                      ? 'border-blue-500 bg-blue-50 text-blue-700'
-                      : 'border-gray-300 hover:border-blue-400 bg-white'
-                  } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      ? 'border-primary bg-primary/20 shadow-lg shadow-primary/25 ring-2 ring-primary/30 transform scale-[1.02]'
+                      : 'border-border bg-card hover:border-primary/50 hover:bg-accent hover:shadow-md hover:transform hover:scale-[1.01]'
+                  }`}
                 >
                   <div className="flex items-center space-x-2 mb-1">
                     <span className="text-lg">{option.icon}</span>
-                    <span className="font-medium text-sm">{option.label}</span>
+                    <span className={`font-medium text-sm ${
+                      learningFormat.includes(option.value) ? 'text-primary' : 'text-foreground'
+                    }`}>{option.label}</span>
                   </div>
-                  <p className="text-xs text-gray-600">{option.description}</p>
+                  <p className={`text-xs ${
+                    learningFormat.includes(option.value) ? 'text-primary/80' : 'text-muted-foreground'
+                  }`}>{option.description}</p>
                 </div>
               ))}
             </div>
             {learningFormat.length === 0 && (
-              <p className="text-sm text-red-600 mt-2">Please select at least one learning format</p>
+              <p className="text-sm text-destructive mt-2">Please select at least one learning format</p>
             )}
           </div>
 
           {/* Batch Size Selection */}
           <div>
-            <label className="block text-sm font-medium mb-3">
+            <label className="block text-sm font-medium text-foreground mb-3">
               Learning Path Scope
             </label>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -381,21 +362,21 @@ const EnhancedLearningPathCreator: React.FC<EnhancedLearningPathCreatorProps> = 
                 return (
                   <div
                     key={option.value}
-                    className={`relative cursor-pointer rounded-lg border-2 p-4 transition-all ${
+                    className={`relative cursor-pointer rounded-lg border-2 p-4 transition-all duration-300 ${
                       batchSize === option.value
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-300 hover:border-blue-400 bg-white'
-                    } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    onClick={() => !loading && handleBatchSizeChange(option.value)}
+                        ? 'border-primary bg-primary/20 shadow-lg shadow-primary/25 ring-2 ring-primary/30 transform scale-[1.02]'
+                        : 'border-border bg-card hover:border-primary/50 hover:bg-accent hover:shadow-md hover:transform hover:scale-[1.01]'
+                    }`}
+                    onClick={() => handleBatchSizeChange(option.value)}
                   >
                     <div className="flex items-start space-x-3">
                       <Icon className={`h-5 w-5 mt-0.5 ${
-                        batchSize === option.value ? 'text-blue-600' : 'text-gray-500'
+                        batchSize === option.value ? 'text-primary' : 'text-muted-foreground'
                       }`} />
                       <div className="flex-1">
                         <div className="flex items-center space-x-2">
                           <h4 className={`font-medium ${
-                            batchSize === option.value ? 'text-blue-700' : 'text-gray-900'
+                            batchSize === option.value ? 'text-primary' : 'text-foreground'
                           }`}>
                             {option.label}
                           </h4>
@@ -403,10 +384,14 @@ const EnhancedLearningPathCreator: React.FC<EnhancedLearningPathCreatorProps> = 
                             <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Recommended</span>
                           )}
                         </div>
-                        <p className="text-sm text-gray-600 mt-1">
+                        <p className={`text-sm mt-1 ${
+                          batchSize === option.value ? 'text-primary/80' : 'text-muted-foreground'
+                        }`}>
                           {option.description}
                         </p>
-                        <div className="flex items-center space-x-1 mt-2 text-xs text-gray-500">
+                        <div className={`flex items-center space-x-1 mt-2 text-xs ${
+                          batchSize === option.value ? 'text-primary/70' : 'text-muted-foreground'
+                        }`}>
                           <Clock className="h-3 w-3" />
                           <span>{option.estimatedTime}</span>
                         </div>
@@ -416,8 +401,8 @@ const EnhancedLearningPathCreator: React.FC<EnhancedLearningPathCreatorProps> = 
                     {/* Radio button indicator */}
                     <div className={`absolute top-4 right-4 w-4 h-4 rounded-full border-2 ${
                       batchSize === option.value
-                        ? 'border-blue-500 bg-blue-500'
-                        : 'border-gray-400'
+                        ? 'border-primary bg-primary'
+                        : 'border-muted-foreground'
                     }`}>
                       {batchSize === option.value && (
                         <div className="w-2 h-2 bg-white rounded-full absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
@@ -429,24 +414,13 @@ const EnhancedLearningPathCreator: React.FC<EnhancedLearningPathCreatorProps> = 
             </div>
           </div>
 
-          {/* Debug Info - Remove in production */}
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-xs">
-            <strong>Debug Info:</strong>
-            <div>Skill Level: {skillLevel}</div>
-            <div>Learning Age: {learningAge}</div>
-            <div>Tutor Personality: {tutorPersonality}</div>
-            <div>Learning Format: {learningFormat.join(', ')}</div>
-            <div>Batch Size: {batchSize}</div>
-            <div>Subject: {subject}</div>
-          </div>
-
           {/* Features Info */}
-          <div className="bg-gray-50 rounded-lg p-4">
-            <h4 className="font-medium text-gray-900 mb-2 flex items-center space-x-2">
-              <Zap className="h-4 w-4 text-blue-600" />
+          <div className="bg-accent/30 rounded-lg p-4">
+            <h4 className="font-medium text-foreground mb-2 flex items-center space-x-2">
+              <Zap className="h-4 w-4 text-primary" />
               <span>Enhanced Features</span>
             </h4>
-            <ul className="text-sm text-gray-600 space-y-1">
+            <ul className="text-sm text-muted-foreground space-y-1">
               <li>• Comprehensive topic content with detailed explanations</li>
               <li>• 5-8 code examples per topic with real-world applications</li>
               <li>• 5-7 quiz questions testing deep understanding</li>
@@ -455,54 +429,48 @@ const EnhancedLearningPathCreator: React.FC<EnhancedLearningPathCreatorProps> = 
             </ul>
           </div>
 
-          {/* Loading Message */}
-          {loading && loadingMessage && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-              <div className="flex items-center space-x-3">
-                <LoadingSpinner size="sm" />
-                <span className="text-blue-800 font-medium">{loadingMessage}</span>
-              </div>
-              <div className="mt-2 text-sm text-blue-600">
-                {loadingMessage.includes('peak times') 
-                  ? 'Free AI models may experience delays during high usage periods. Thank you for your patience!'
-                  : 'Please keep this tab open while we generate your personalized learning content.'
-                }
+          {/* Background Processing Info */}
+          <div className="bg-primary/10 rounded-lg p-4 border border-primary/20">
+            <div className="flex items-center space-x-3">
+              <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+              <div>
+                <h4 className="font-medium text-primary">Background Processing Enabled</h4>
+                <p className="text-sm text-primary/80">
+                  Your enhanced learning path will be created in the background. Continue using the app and we'll notify you when it's ready!
+                </p>
               </div>
             </div>
-          )}
+          </div>
 
-          {/* Submit Button */}
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-600">
-              {loading ? (
-                'Generating your personalized learning path...'
-              ) : (
-                batchSize === 'initial' 
-                  ? 'Creates 8-10 modules with substantial content'
-                  : 'Creates 12-15 modules with comprehensive coverage'
-              )}
+
+
+          {/* Action Buttons */}
+          <div className="flex items-center justify-between pt-4">
+            <div className="text-sm text-muted-foreground max-w-md">
+              {batchSize === 'initial' 
+                ? 'Creates 8-10 modules with substantial content'
+                : 'Creates 12-15 modules with comprehensive coverage'
+              }
             </div>
-            <button
-              type="submit"
-              disabled={loading || !subject.trim() || learningFormat.length === 0}
-              className={`px-6 py-2 rounded-lg font-medium flex items-center space-x-2 transition-all ${
-                loading || !subject.trim() || learningFormat.length === 0
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-blue-600 text-white hover:bg-blue-700'
-              }`}
-            >
-              {loading ? (
-                <>
-                  <LoadingSpinner size="sm" />
-                  <span>Creating...</span>
-                </>
-              ) : (
-                <>
-                  <Plus className="h-4 w-4" />
-                  <span>Create Learning Path</span>
-                </>
+            <div className="flex items-center space-x-3">
+              {onClose && (
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="btn-outline btn-md px-6 py-2 h-10 min-w-[100px]"
+                >
+                  Cancel
+                </button>
               )}
-            </button>
+              <button
+                type="submit"
+                disabled={!subject.trim() || learningFormat.length === 0}
+                className="btn-primary btn-md flex items-center space-x-2 px-6 py-2 h-10 min-w-[160px] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Plus className="h-4 w-4" />
+                <span>Queue Creation</span>
+              </button>
+            </div>
           </div>
         </form>
       </div>

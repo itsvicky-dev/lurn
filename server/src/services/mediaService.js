@@ -79,13 +79,15 @@ class MediaService {
           q: searchQuery,
           part: 'snippet',
           type: 'video',
-          maxResults: count,
+          maxResults: Math.min(count * 2, 10), // Get more results to filter better ones
           order: 'relevance',
-          videoDuration: 'medium', // 4-20 minutes
+          videoDuration: 'medium', // 4-20 minutes - good for tutorials
           videoEmbeddable: 'true',
           safeSearch: 'strict',
           relevanceLanguage: 'en',
-          regionCode: 'US'
+          regionCode: 'US',
+          videoDefinition: 'any', // Allow both HD and standard
+          videoLicense: 'any' // Allow all licenses
         },
         timeout: 10000
       });
@@ -95,16 +97,26 @@ class MediaService {
         title: item.snippet.title,
         description: item.snippet.description,
         url: `https://www.youtube.com/watch?v=${item.id.videoId}`,
-        embedUrl: `https://www.youtube.com/embed/${item.id.videoId}`,
+        embedUrl: `https://www.youtube.com/embed/${item.id.videoId}?rel=0&modestbranding=1&showinfo=0`,
         thumbnail: item.snippet.thumbnails.medium?.url || item.snippet.thumbnails.default?.url,
         duration: null, // Would need additional API call to get duration
         source: 'youtube',
         channelTitle: item.snippet.channelTitle,
-        publishedAt: item.snippet.publishedAt
+        publishedAt: item.snippet.publishedAt,
+        // Add relevance scoring for videos
+        relevanceScore: this.calculateVideoRelevance(item.snippet.title, item.snippet.description, query, subject)
       })) || [];
       
-      console.log(`✅ Found ${videos.length} videos from YouTube for query: "${query}"`);
-      return videos;
+      // Sort videos by relevance score (higher is better)
+      videos.sort((a, b) => b.relevanceScore - a.relevanceScore);
+      
+      // Filter out videos with very low relevance scores and return only the requested count
+      const filteredVideos = videos
+        .filter(video => video.relevanceScore > 10) // Only keep videos with decent relevance
+        .slice(0, count); // Return only the requested number
+      
+      console.log(`✅ Found ${filteredVideos.length} relevant videos from YouTube for query: "${query}"`);
+      return filteredVideos;
       
     } catch (error) {
       console.error(`❌ YouTube search failed for query "${query}":`, error.message);
@@ -414,6 +426,83 @@ class MediaService {
     });
     
     return score;
+  }
+
+  /**
+   * Calculate relevance score for videos based on title, description, query, and subject
+   */
+  calculateVideoRelevance(title, description, query, subject = '') {
+    let score = 0;
+    const text = `${title} ${description || ''}`.toLowerCase();
+    const queryWords = query.toLowerCase().split(' ');
+    const subjectWords = subject.toLowerCase().split(' ');
+    
+    // Programming and educational keywords get higher scores
+    const educationalKeywords = [
+      'tutorial', 'learn', 'course', 'lesson', 'guide', 'how to', 'beginner',
+      'introduction', 'basics', 'fundamentals', 'explained', 'walkthrough'
+    ];
+    
+    const programmingKeywords = [
+      'code', 'programming', 'development', 'coding', 'script', 'syntax',
+      'php', 'javascript', 'python', 'html', 'css', 'java', 'c++', 'react',
+      'node', 'angular', 'vue', 'function', 'variable', 'array', 'object',
+      'class', 'method', 'algorithm', 'data structure', 'api', 'framework'
+    ];
+    
+    // Check for educational keywords (high priority for tutorials)
+    educationalKeywords.forEach(keyword => {
+      if (text.includes(keyword)) {
+        score += 15;
+      }
+    });
+    
+    // Check for programming keywords
+    programmingKeywords.forEach(keyword => {
+      if (text.includes(keyword)) {
+        score += 10;
+      }
+    });
+    
+    // Check for query word matches
+    queryWords.forEach(word => {
+      if (word.length > 2 && text.includes(word)) {
+        score += 8;
+      }
+    });
+    
+    // Check for subject matches (very important)
+    subjectWords.forEach(word => {
+      if (word.length > 2 && text.includes(word)) {
+        score += 20;
+      }
+    });
+    
+    // Bonus for specific programming patterns
+    if (text.includes('hello world')) score += 25;
+    if (text.includes('for beginners')) score += 20;
+    if (text.includes('step by step')) score += 15;
+    if (text.includes('complete guide')) score += 15;
+    if (text.includes('crash course')) score += 10;
+    
+    // Penalize irrelevant content
+    const irrelevantKeywords = [
+      'music', 'song', 'movie', 'trailer', 'review', 'reaction', 'vlog',
+      'gaming', 'gameplay', 'funny', 'comedy', 'entertainment', 'news'
+    ];
+    
+    irrelevantKeywords.forEach(keyword => {
+      if (text.includes(keyword)) {
+        score -= 30;
+      }
+    });
+    
+    // Penalize very long videos (likely not focused tutorials)
+    if (text.includes('hour') || text.includes('hours')) {
+      score -= 10;
+    }
+    
+    return Math.max(0, score); // Ensure score is not negative
   }
 
   /**

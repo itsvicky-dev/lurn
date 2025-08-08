@@ -108,27 +108,27 @@ const TopicLoader: React.FC<TopicLoaderProps> = ({
   const CurrentIcon = icons[currentIconIndex];
 
   return (
-    <div className={`flex flex-col items-center justify-center min-h-[500px] p-8 ${className}`}>
+    <div className={`flex flex-col items-center justify-center min-h-[500px] p-8 bg-background ${className}`}>
       {/* Main Loading Animation */}
       <div className="relative mb-8">
         {/* Outer rotating rings */}
-        <div className="absolute inset-0 w-32 h-32 border-4 border-primary-200 rounded-full animate-spin border-t-primary-600"></div>
-        <div className="absolute inset-2 w-28 h-28 border-3 border-secondary-200 rounded-full animate-spin border-b-secondary-500 animation-delay-300" style={{ animationDirection: 'reverse' }}></div>
-        <div className="absolute inset-4 w-24 h-24 border-2 border-success-200 rounded-full animate-spin border-r-success-500 animation-delay-700"></div>
+        <div className="absolute inset-0 w-32 h-32 border-4 border-muted rounded-full animate-spin border-t-primary"></div>
+        <div className="absolute inset-2 w-28 h-28 border-3 border-muted rounded-full animate-spin border-b-accent animation-delay-300" style={{ animationDirection: 'reverse' }}></div>
+        <div className="absolute inset-4 w-24 h-24 border-2 border-muted rounded-full animate-spin border-r-secondary animation-delay-700"></div>
         
         {/* Center icon container */}
         <div className="relative w-32 h-32 flex items-center justify-center">
-          <div className="w-16 h-16 bg-gradient-to-br from-primary-500 via-purple-500 to-pink-500 rounded-full flex items-center justify-center shadow-2xl transform transition-all duration-500 hover:scale-110 animate-pulse">
-            <CurrentIcon className="w-8 h-8 text-white animate-bounce" />
+          <div className="w-16 h-16 bg-gradient-to-br from-primary via-secondary to-accent rounded-full flex items-center justify-center shadow-2xl transform transition-all duration-500 hover:scale-110 animate-pulse">
+            <CurrentIcon className="w-8 h-8 text-primary-foreground animate-bounce" />
           </div>
         </div>
         
         {/* Floating particles */}
-        <div className="absolute -top-4 -right-4 w-4 h-4 bg-yellow-400 rounded-full animate-ping"></div>
-        <div className="absolute -bottom-4 -left-4 w-3 h-3 bg-blue-400 rounded-full animate-ping animation-delay-500"></div>
-        <div className="absolute top-1/2 -left-6 w-2 h-2 bg-green-400 rounded-full animate-ping animation-delay-1000"></div>
-        <div className="absolute top-1/4 -right-6 w-3 h-3 bg-purple-400 rounded-full animate-ping animation-delay-200"></div>
-        <div className="absolute bottom-1/4 -left-8 w-2 h-2 bg-pink-400 rounded-full animate-ping animation-delay-800"></div>
+        <div className="absolute -top-4 -right-4 w-4 h-4 bg-primary/40 rounded-full animate-ping"></div>
+        <div className="absolute -bottom-4 -left-4 w-3 h-3 bg-secondary/40 rounded-full animate-ping animation-delay-500"></div>
+        <div className="absolute top-1/2 -left-6 w-2 h-2 bg-accent/40 rounded-full animate-ping animation-delay-1000"></div>
+        <div className="absolute top-1/4 -right-6 w-3 h-3 bg-primary/30 rounded-full animate-ping animation-delay-200"></div>
+        <div className="absolute bottom-1/4 -left-8 w-2 h-2 bg-secondary/30 rounded-full animate-ping animation-delay-800"></div>
       </div>
 
       {/* Progress Indicators */}
@@ -138,8 +138,8 @@ const TopicLoader: React.FC<TopicLoaderProps> = ({
             key={index}
             className={`w-3 h-3 rounded-full transition-all duration-500 ${
               index === (currentMessageIndex % 8)
-                ? 'bg-gradient-to-r from-primary-500 to-purple-500 scale-125 shadow-lg' 
-                : 'bg-gray-300 scale-100'
+                ? 'bg-gradient-to-r from-primary to-secondary scale-125 shadow-lg' 
+                : 'bg-muted scale-100'
             }`}
           />
         ))}
@@ -147,24 +147,24 @@ const TopicLoader: React.FC<TopicLoaderProps> = ({
 
       {/* Dynamic Loading Message */}
       <div className="text-center space-y-4 max-w-lg">
-        <h2 className="text-2xl font-bold text-gray-900 transition-all duration-700 ease-in-out transform animate-in fade-in-0">
+        <h2 className="text-2xl font-bold text-foreground transition-all duration-700 ease-in-out transform animate-in fade-in-0">
           {loadingMessages[currentMessageIndex]}
         </h2>
 
-        <p className="text-gray-600">
+        <p className="text-muted-foreground">
           Creating personalized content just for you...
         </p>
       </div>
 
       {/* Encouraging Message */}
       {showEncouragement && (
-        <div className="mt-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200 max-w-md animate-in fade-in-0 slide-in-from-bottom-4">
+        <div className="mt-6 p-4 bg-card rounded-xl border border-border max-w-md animate-in fade-in-0 slide-in-from-bottom-4">
           <div className="flex items-center justify-center mb-2">
-            <Star className="w-5 h-5 text-yellow-500 mr-2" />
-            <span className="text-sm font-semibold text-green-800 uppercase tracking-wide">Fun Fact</span>
-            <Star className="w-5 h-5 text-yellow-500 ml-2" />
+            <Star className="w-5 h-5 text-yellow-500 dark:text-yellow-400 mr-2" />
+            <span className="text-sm font-semibold text-card-foreground uppercase tracking-wide">Fun Fact</span>
+            <Star className="w-5 h-5 text-yellow-500 dark:text-yellow-400 ml-2" />
           </div>
-          <p className="text-green-700 font-medium text-center">
+          <p className="text-card-foreground font-medium text-center">
             {encouragingMessages[currentMessageIndex % encouragingMessages.length]}
           </p>
         </div>
@@ -193,12 +193,12 @@ const TopicLoader: React.FC<TopicLoaderProps> = ({
 
       {/* Notification Prompt */}
       {showNotificationPrompt && onNotificationPermissionRequest && (
-        <div className="mt-8 p-4 bg-blue-50 rounded-xl border border-blue-200 max-w-md animate-in fade-in-0">
+        <div className="mt-8 p-4 bg-card rounded-xl border border-border max-w-md animate-in fade-in-0">
           <div className="flex items-center justify-center space-x-2 mb-2">
-            <Zap className="h-5 w-5 text-blue-600" />
-            <p className="text-blue-800 font-medium">Stay Updated!</p>
+            <Zap className="h-5 w-5 text-primary" />
+            <p className="text-card-foreground font-medium">Stay Updated!</p>
           </div>
-          <p className="text-blue-700 text-sm mb-3 text-center">
+          <p className="text-muted-foreground text-sm mb-3 text-center">
             We'll notify you when your content is ready so you can continue with other tasks.
           </p>
           <button
@@ -212,21 +212,21 @@ const TopicLoader: React.FC<TopicLoaderProps> = ({
 
       {/* Time Estimate */}
       <div className="mt-6 text-center">
-        <div className="inline-flex items-center space-x-2 px-4 py-2 bg-gray-100 rounded-full">
-          <Coffee className="w-4 h-4 text-gray-600" />
-          <span className="text-sm text-gray-700">Usually takes 1-3 minutes</span>
+        <div className="inline-flex items-center space-x-2 px-4 py-2 bg-muted rounded-full">
+          <Coffee className="w-4 h-4 text-muted-foreground" />
+          <span className="text-sm text-foreground">Usually takes 1-3 minutes</span>
         </div>
-        <p className="text-xs text-gray-500 mt-2">
+        <p className="text-xs text-muted-foreground mt-2">
           Premium models are faster and more accurate
         </p>
       </div>
 
       {/* Background Animated Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-2 h-2 bg-blue-300 rounded-full animate-float opacity-30"></div>
-        <div className="absolute top-3/4 right-1/4 w-3 h-3 bg-purple-300 rounded-full animate-float opacity-30 animation-delay-1000"></div>
-        <div className="absolute top-1/2 left-1/6 w-1 h-1 bg-pink-300 rounded-full animate-float opacity-30 animation-delay-2000"></div>
-        <div className="absolute bottom-1/4 right-1/6 w-2 h-2 bg-green-300 rounded-full animate-float opacity-30 animation-delay-1500"></div>
+        <div className="absolute top-1/4 left-1/4 w-2 h-2 bg-primary/20 rounded-full animate-float opacity-30"></div>
+        <div className="absolute top-3/4 right-1/4 w-3 h-3 bg-secondary/20 rounded-full animate-float opacity-30 animation-delay-1000"></div>
+        <div className="absolute top-1/2 left-1/6 w-1 h-1 bg-accent/20 rounded-full animate-float opacity-30 animation-delay-2000"></div>
+        <div className="absolute bottom-1/4 right-1/6 w-2 h-2 bg-primary/15 rounded-full animate-float opacity-30 animation-delay-1500"></div>
       </div>
     </div>
   );

@@ -228,27 +228,40 @@ const ModernLayout: React.FC = () => {
             </div>
 
             {/* User Menu */}
-            <motion.div
-              className="flex items-center space-x-2 px-3 py-2 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer"
-              whileHover={{ scale: 1.02 }}
-            >
-              {user?.avatar ? (
-                <img
-                  className="h-8 w-8 rounded-full"
-                  src={user.avatar}
-                  alt={`${user.firstName} ${user.lastName}`}
-                />
-              ) : (
-                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">
-                    {user?.firstName?.[0]}{user?.lastName?.[0]}
-                  </span>
-                </div>
-              )}
-              <span className="text-sm font-medium hidden sm:block text-foreground">
-                {user?.firstName}
-              </span>
-            </motion.div>
+            <div className="flex items-center space-x-2">
+              <motion.div
+                className="flex items-center space-x-2 px-3 py-2 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer"
+                whileHover={{ scale: 1.02 }}
+              >
+                {user?.avatar ? (
+                  <img
+                    className="h-8 w-8 rounded-full"
+                    src={user.avatar}
+                    alt={`${user.firstName} ${user.lastName}`}
+                  />
+                ) : (
+                  <div className="h-8 w-8 rounded-full bg-gradient-to-br from-muted-foreground/20 to-muted-foreground/30 border border-border flex items-center justify-center">
+                    <span className="text-foreground font-bold text-sm">
+                      {user?.firstName?.[0]}{user?.lastName?.[0]}
+                    </span>
+                  </div>
+                )}
+                <span className="text-sm font-medium hidden sm:block text-foreground">
+                  {user?.firstName}
+                </span>
+              </motion.div>
+
+              {/* Logout Button */}
+              <motion.button
+                onClick={logout}
+                className="p-2 rounded-xl text-muted-foreground hover:text-error-400 hover:bg-error-500/10 transition-all duration-300 border border-transparent hover:border-error-500/20"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                title="Sign out"
+              >
+                <LogOut className="h-4 w-4" />
+              </motion.button>
+            </div>
 
             {/* Mobile Menu Toggle */}
             <motion.button

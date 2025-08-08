@@ -18,8 +18,8 @@ export const FREE_MODELS = {
   // Add more as they become available
 };
 
-// Default model recommendation
-export const RECOMMENDED_FREE_MODEL = FREE_MODELS.DEEPSEEK_R1;
+// Default model recommendation - using Qwen for better JSON generation
+export const RECOMMENDED_FREE_MODEL = FREE_MODELS.QWEN3_14B;
 
 // Model descriptions and use cases
 export const MODEL_INFO = {

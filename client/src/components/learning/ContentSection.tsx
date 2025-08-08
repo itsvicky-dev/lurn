@@ -93,7 +93,7 @@ const ContentSection: React.FC<ContentSectionProps> = ({
       </div>
 
       {/* Visual suggestion hint for debugging */}
-      {section.visualSuggestion && !hasVisuals && process.env.NODE_ENV === 'development' && (
+      {section.visualSuggestion && !hasVisuals && import.meta.env.DEV && (
         <div className="mt-2 text-xs text-muted-foreground/70 italic">
           Visual suggestion: {section.visualSuggestion}
         </div>

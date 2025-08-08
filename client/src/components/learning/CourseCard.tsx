@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { LearningPath, Module } from '../../types';
 import { safeFormatDateWithPrefix } from '../../utils/dateUtils';
+import { formatLearningPathDuration } from '../../utils/durationUtils';
 import LoadingSpinner from '../ui/LoadingSpinner';
 import { useLearning } from '../../contexts/LearningContext';
 
@@ -62,6 +63,8 @@ const CourseCard: React.FC<CourseCardProps> = ({
         return 'bg-gray-100 text-gray-700 dark:bg-gray-900/20 dark:text-gray-300';
     }
   };
+
+
 
   const isModuleLocked = (module: Module, index: number) => {
     if (index === 0 && course.modules.length > 0) return false; // First module is always unlocked
@@ -151,7 +154,7 @@ const CourseCard: React.FC<CourseCardProps> = ({
           </div>
           <div className="flex items-center space-x-1 text-sm text-muted-foreground">
             <Clock className="h-4 w-4" />
-            <span>{course.estimatedDuration}h total</span>
+            <span>{formatLearningPathDuration(course.estimatedDuration)} total</span>
           </div>
           <div className="flex items-center space-x-1 text-sm text-muted-foreground">
             <CheckCircle className="h-4 w-4" />

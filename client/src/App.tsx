@@ -34,6 +34,7 @@ import GamePlayPage from './pages/games/GamePlayPage';
 // Layout
 import DynamicLayout from './components/layout/DynamicLayout';
 import BackgroundTaskIndicator from './components/ui/BackgroundTaskIndicator';
+import ErrorBoundary from './components/ui/ErrorBoundary';
 
 const AppRoutes: React.FC = () => {
   const { user, loading } = useAuth();
@@ -117,19 +118,20 @@ const AppRoutes: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    <Router>
-      <ThemeProvider>
-        <LayoutProvider>
-          <AuthProvider>
-            <NotificationProvider>
-              <LearningProvider>
-                <ChatProvider>
-                  <CodePlaygroundProvider>
-                    <GameProvider>
-                <div className="min-h-screen bg-background text-foreground transition-colors duration-300 cyber-grid">
-                  <AppRoutes />
-                  <BackgroundTaskIndicator />
-                  <Toaster
+    <ErrorBoundary>
+      <Router>
+        <ThemeProvider>
+          <LayoutProvider>
+            <AuthProvider>
+              <NotificationProvider>
+                <LearningProvider>
+                  <ChatProvider>
+                    <CodePlaygroundProvider>
+                      <GameProvider>
+                  <div className="min-h-screen bg-background text-foreground transition-colors duration-300 cyber-grid">
+                    <AppRoutes />
+                    <BackgroundTaskIndicator />
+                    <Toaster
                     position="top-right"
                     toastOptions={{
                       duration: 4000,
@@ -182,16 +184,17 @@ const App: React.FC = () => {
                       },
                     }}
                   />
-                </div>
-                    </GameProvider>
-                  </CodePlaygroundProvider>
-                </ChatProvider>
-              </LearningProvider>
-            </NotificationProvider>
-          </AuthProvider>
-        </LayoutProvider>
-      </ThemeProvider>
-    </Router>
+                  </div>
+                      </GameProvider>
+                    </CodePlaygroundProvider>
+                  </ChatProvider>
+                </LearningProvider>
+              </NotificationProvider>
+            </AuthProvider>
+          </LayoutProvider>
+        </ThemeProvider>
+      </Router>
+    </ErrorBoundary>
   );
 };
 

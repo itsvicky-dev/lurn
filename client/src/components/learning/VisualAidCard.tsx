@@ -1,5 +1,5 @@
-import React from 'react';
-import { Image, Video, ExternalLink, BarChart3 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Image, Video, ExternalLink, BarChart3, Play, AlertCircle } from 'lucide-react';
 
 interface VisualAid {
   type: 'image' | 'video' | 'chart' | 'diagram';
@@ -12,6 +12,9 @@ interface VisualAid {
   author?: string;
   authorUrl?: string;
   title?: string;
+  channelTitle?: string;
+  publishedAt?: string;
+  duration?: string;
 }
 
 interface VisualAidCardProps {
@@ -21,6 +24,9 @@ interface VisualAidCardProps {
 }
 
 const VisualAidCard: React.FC<VisualAidCardProps> = ({ aid, index, className = '' }) => {
+  const [videoError, setVideoError] = useState(false);
+  const [isVideoLoaded, setIsVideoLoaded] = useState(false);
+  const [showVideo, setShowVideo] = useState(false);
   const renderImageContent = () => (
     <div className="relative">
       <img
@@ -44,36 +50,59 @@ const VisualAidCard: React.FC<VisualAidCardProps> = ({ aid, index, className = '
 
   const renderVideoContent = () => (
     <div className="relative">
-      {aid.embedUrl ? (
-        <div className="relative pb-[56.25%] h-0 overflow-hidden bg-black">
+      {aid.embedUrl && !videoError && showVideo ? (
+        <div className="relative pb-[56.25%] h-0 overflow-hidden bg-black rounded-t-lg">
+          {!isVideoLoaded && (
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-900 rounded-t-lg z-10">
+              <div className="text-white text-center">
+                <Play className="h-12 w-12 mx-auto mb-2 opacity-70 animate-pulse" />
+                <p className="text-sm opacity-70">Loading video...</p>
+              </div>
+            </div>
+          )}
           <iframe
             src={aid.embedUrl}
             title={aid.caption || aid.title || 'Educational video'}
-            className="absolute top-0 left-0 w-full h-full"
+            className="absolute top-0 left-0 w-full h-full rounded-t-lg"
             frameBorder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             allowFullScreen
+            loading="lazy"
+            onLoad={() => setIsVideoLoaded(true)}
+            onError={() => setVideoError(true)}
           />
         </div>
+      ) : videoError ? (
+        <div className="relative h-64 bg-red-50 border-2 border-red-200 rounded-t-lg flex items-center justify-center">
+          <div className="text-center text-red-600">
+            <AlertCircle className="h-12 w-12 mx-auto mb-2" />
+            <p className="text-sm font-medium">Video unavailable</p>
+            <p className="text-xs opacity-70">Click below to watch on YouTube</p>
+          </div>
+        </div>
       ) : aid.thumbnail ? (
-        <div className="relative">
+        <div className="relative cursor-pointer" onClick={() => setShowVideo(true)}>
           <img
             src={aid.thumbnail}
             alt={aid.caption || aid.title || 'Video thumbnail'}
-            className="w-full h-64 object-cover"
+            className="w-full h-64 object-cover transition-transform hover:scale-105"
           />
-          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40">
-            <div className="bg-white rounded-full p-4">
-              <Video className="h-12 w-12 text-red-600" />
+          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40 hover:bg-opacity-30 transition-all">
+            <div className="bg-red-600 rounded-full p-4 hover:bg-red-700 transition-colors shadow-lg">
+              <Play className="h-12 w-12 text-white fill-current" />
             </div>
+          </div>
+          <div className="absolute top-3 left-3 bg-red-600 text-white text-xs px-2 py-1 rounded-full font-medium">
+            Click to Play
           </div>
           {aid.url && (
             <a
               href={aid.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="absolute top-3 right-3 bg-red-600 text-white p-2 rounded-full hover:bg-red-700 transition-colors"
+              className="absolute top-3 right-3 bg-black bg-opacity-70 text-white p-2 rounded-full hover:bg-opacity-90 transition-colors"
               title="Watch on YouTube"
+              onClick={(e) => e.stopPropagation()}
             >
               <ExternalLink className="h-4 w-4" />
             </a>
@@ -169,10 +198,18 @@ const VisualAidCard: React.FC<VisualAidCardProps> = ({ aid, index, className = '
           </p>
         )}
         
+        {/* Channel Information for Videos */}
+        {aid.type === 'video' && aid.channelTitle && (
+          <div className="text-xs text-muted-foreground mb-2">
+            <span className="font-medium">Channel: </span>
+            <span className="text-red-600">{aid.channelTitle}</span>
+          </div>
+        )}
+        
         {/* Actions and Attribution */}
         <div className="flex items-center justify-between">
           <div className="flex-1">
-            {aid.author && (
+            {aid.type !== 'video' && aid.author && (
               <div className="text-xs text-muted-foreground">
                 <span>
                   By: {aid.authorUrl ? (

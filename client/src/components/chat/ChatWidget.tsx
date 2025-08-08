@@ -235,11 +235,11 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
                     remarkPlugins={[remarkGfm]}
                     className="prose prose-sm max-w-none"
                     components={{
-                      code({ node, inline, className, children, ...props }) {
+                      code({ node, inline, className, children, ...props }: any) {
                         const match = /language-(\w+)/.exec(className || '');
                         return !inline && match ? (
                           <SyntaxHighlighter
-                            style={vscDarkPlus}
+                            style={vscDarkPlus as { [key: string]: React.CSSProperties }}
                             language={match[1]}
                             PreTag="div"
                             className="text-xs"

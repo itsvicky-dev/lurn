@@ -79,7 +79,7 @@ const ModuleDetailPage: React.FC = () => {
     
     // Check if all topics already have content generated
     if (module.topics && module.topics.length > 0 && module.topics.every(t => t.isContentGenerated)) {
-      toast.info('All topics already have content generated!');
+      toast.success('All topics already have content generated!');
       return;
     }
     

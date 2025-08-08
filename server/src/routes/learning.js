@@ -433,6 +433,14 @@ router.post('/paths/test', authenticate, async (req, res) => {
 // Create new learning path for additional subject
 router.post('/paths', authenticate, requireOnboarding, async (req, res) => {
   const startTime = Date.now();
+  console.log('🎯 Learning path creation request received:', {
+    userId: req.user?._id,
+    body: req.body,
+    headers: {
+      'content-type': req.headers['content-type'],
+      'authorization': req.headers.authorization ? 'Bearer ***' : 'None'
+    }
+  });
   
   // Handle client disconnect
   req.on('close', () => {
@@ -612,11 +620,12 @@ router.post('/paths', authenticate, requireOnboarding, async (req, res) => {
       }
       
       try {
-        // Try sending a minimal response first to test
-        const minimalResponse = {
+        // First, send a basic response to prevent timeout issues
+        const basicResponse = {
           message: 'Learning path created successfully',
           learningPath: {
             id: learningPath._id.toString(),
+            _id: learningPath._id,
             subject: learningPath.subject,
             title: learningPath.title,
             description: learningPath.description,
@@ -624,25 +633,51 @@ router.post('/paths', authenticate, requireOnboarding, async (req, res) => {
             estimatedDuration: learningPath.estimatedDuration,
             progress: learningPath.progress,
             status: learningPath.status,
-            modules: moduleIds.length,
+            modules: moduleIds,
             createdAt: learningPath.createdAt,
             updatedAt: learningPath.updatedAt
           },
           generationTime: totalTime
         };
         
-        console.log(`📤 Attempting to send minimal response...`);
-        res.status(201).json(minimalResponse);
-        console.log(`✅ Response sent successfully`);
+        console.log(`📤 Sending basic response first to prevent timeout...`);
+        
+        // Set appropriate headers before sending
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.status(201).json(basicResponse);
+        console.log(`✅ Basic response sent successfully`);
+        
       } catch (responseError) {
         console.error('❌ Error sending response:', responseError);
         console.error('❌ Response error stack:', responseError.stack);
-        // Try to send a simple error response if possible
+        
+        // Try to send a minimal response if headers haven't been sent
         if (!res.headersSent) {
           try {
-            res.status(500).json({ message: 'Error sending response' });
+            const minimalResponse = {
+              message: 'Learning path created successfully',
+              learningPath: {
+                id: learningPath._id.toString(),
+                subject: learningPath.subject,
+                title: learningPath.title
+              },
+              generationTime: totalTime,
+              note: 'Minimal response due to network issues - refresh to see full data'
+            };
+            
+            console.log(`📤 Sending minimal response...`);
+            res.status(201).json(minimalResponse);
+            console.log(`✅ Minimal response sent successfully`);
           } catch (fallbackError) {
-            console.error('❌ Even fallback response failed:', fallbackError);
+            console.error('❌ Even minimal response failed:', fallbackError);
+            if (!res.headersSent) {
+              res.status(201).json({ 
+                message: 'Learning path created successfully',
+                learningPath: { id: learningPath._id.toString() },
+                note: 'Path created but response truncated - please refresh'
+              });
+            }
           }
         }
       }

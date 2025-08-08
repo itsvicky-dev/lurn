@@ -15,7 +15,19 @@ const MobileDetectionTest: React.FC = () => {
             <p><strong>Is Mobile:</strong> {isMobile ? 'Yes' : 'No'}</p>
             <p><strong>Desktop View Enabled:</strong> {isDesktopView ? 'Yes' : 'No'}</p>
             <p><strong>Screen Width:</strong> {window.innerWidth}px</p>
-            <p><strong>User Agent:</strong> {navigator.userAgent}</p>
+            <p><strong>Screen Height:</strong> {window.innerHeight}px</p>
+            <p><strong>Aspect Ratio:</strong> {(window.innerWidth / window.innerHeight).toFixed(2)}</p>
+            <p><strong>User Agent:</strong> {navigator.userAgent.substring(0, 50)}...</p>
+            <p><strong>Auto-Detected Desktop Mode:</strong> {(() => {
+              const userAgent = navigator.userAgent.toLowerCase();
+              const isMobileDevice = ['android', 'webos', 'iphone', 'ipad', 'ipod', 'blackberry', 'windows phone', 'mobile'].some(keyword => userAgent.includes(keyword));
+              if (!isMobileDevice) return 'N/A (Not mobile device)';
+              const width = window.innerWidth;
+              const height = window.innerHeight;
+              const aspectRatio = width / height;
+              return ((width > 1024 && aspectRatio > 1.3) || width > 1200) ? 'Yes' : 'No';
+            })()}</p>
+            <p><strong>Forced View Setting:</strong> {localStorage.getItem('forceDesktopView') || 'None'}</p>
           </div>
 
           <div className="space-y-2">

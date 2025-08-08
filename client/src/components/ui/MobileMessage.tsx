@@ -32,10 +32,19 @@ const MobileMessage: React.FC = () => {
 
         {/* Instructions for Desktop View */}
         <div className="space-y-4">
-          <div className="p-4 flex items-center justify-center">
-            <div className="flex items-center gap-2 mb-2 center">
+          <div className="p-4 bg-card/50 rounded-lg border border-border">
+            <div className="flex items-center gap-2 mb-3 justify-center">
               <Monitor className="w-5 h-5 text-primary" />
               <h3 className="font-medium text-card-foreground">Enable Desktop View</h3>
+            </div>
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <p><strong>For Chrome/Safari:</strong></p>
+              <p>• Tap the menu (⋮ or aA) → "Request Desktop Site"</p>
+              <p><strong>For Firefox:</strong></p>
+              <p>• Tap the menu (⋮) → "Desktop site"</p>
+              <p className="pt-2 text-xs text-center text-primary">
+                The app will automatically detect when desktop mode is enabled
+              </p>
             </div>
           </div>
         </div>

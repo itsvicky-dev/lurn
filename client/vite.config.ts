@@ -32,6 +32,13 @@ export default defineConfig({
           console.log('✅ netlify.toml file copied to dist/');
         }
 
+        // Copy index.html as 404.html for SPA routing fallback
+        const indexSrc = resolve(__dirname, 'dist', 'index.html');
+        const notFoundDest = resolve(__dirname, 'dist', '404.html');
+        if (fs.existsSync(indexSrc)) {
+          fs.copyFileSync(indexSrc, notFoundDest);
+          console.log('✅ 404.html file created from index.html');
+        }
 
       },
     },

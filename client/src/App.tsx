@@ -30,6 +30,8 @@ import SettingsPage from './pages/settings/SettingsPage';
 import CodePlaygroundPage from './pages/playground/CodePlaygroundPage';
 import GamesPage from './pages/games/GamesPage';
 import GamePlayPage from './pages/games/GamePlayPage';
+import SuggestionsPage from './pages/suggestions/SuggestionsPage';
+import AdminSuggestionsPage from './pages/admin/AdminSuggestionsPage';
 
 // Layout
 import DynamicLayout from './components/layout/DynamicLayout';
@@ -96,6 +98,8 @@ const AppRoutes: React.FC = () => {
         <Route path="chat/:sessionId" element={<ChatPage />} />
         <Route path="playground" element={<CodePlaygroundPage />} />
         <Route path="games" element={<GamesPage />} />
+        <Route path="suggestions" element={<SuggestionsPage />} />
+        <Route path="admin/suggestions" element={<AdminSuggestionsPage />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>

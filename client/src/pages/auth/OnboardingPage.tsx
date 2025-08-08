@@ -139,9 +139,20 @@ const OnboardingPage: React.FC = () => {
         language: formData.language
       };
 
-      // Complete onboarding first
-      const { user: updatedUser } = await apiService.completeOnboarding(onboardingData);
-      updateUser(updatedUser);
+      // Immediately mark user as onboarded locally to allow navigation
+      updateUser({ isOnboarded: true });
+      
+      // Queue onboarding completion in background (don't wait)
+      apiService.completeOnboarding(onboardingData)
+        .then(({ user: updatedUser }) => {
+          updateUser(updatedUser);
+          console.log('Onboarding completed successfully');
+        })
+        .catch((error) => {
+          console.error('Onboarding completion failed:', error);
+          // Show error toast if onboarding fails
+          toast.error('Failed to complete onboarding, but you can continue using the app.');
+        });
       
       // Request notification permission for background tasks (non-blocking)
       notificationService.requestPermission().catch(console.warn);
@@ -167,21 +178,21 @@ const OnboardingPage: React.FC = () => {
       }
       
       // Show success messages
-      toast.success('🎉 Welcome to Lurn! Your account is set up.');
+      toast.success('🎉 Welcome to Lurn! Setting up your account...');
       
       if (queuedTasks.length > 0) {
         toast(`🚀 ${queuedTasks.length} learning path${queuedTasks.length > 1 ? 's' : ''} queued for creation. You'll be notified when they're ready!`, {
           icon: '📋',
-          duration: 5000,
+          duration: 2000,
         });
       }
       
-      // Navigate to home/dashboard immediately
-      navigate('/dashboard');
+      // Navigate to dashboard immediately
+      navigate('/dashboard', { replace: true });
       
     } catch (error: any) {
-      console.error('Onboarding error:', error);
-      toast.error(error.response?.data?.message || 'Failed to complete onboarding. Please try again.');
+      console.error('Setup error:', error);
+      toast.error('Failed to start setup process. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

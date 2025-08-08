@@ -13,6 +13,7 @@ import aiRoutes from './routes/ai.js';
 import chatRoutes from './routes/chat.js';
 import codeRoutes from './routes/code.js';
 import gamesRoutes from './routes/games.js';
+import suggestionsRoutes from './routes/suggestions.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { setupSocketHandlers } from './socket/handlers.js';
 
@@ -94,6 +95,7 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/code', codeRoutes);
 app.use('/api/games', gamesRoutes);
+app.use('/api/suggestions', suggestionsRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

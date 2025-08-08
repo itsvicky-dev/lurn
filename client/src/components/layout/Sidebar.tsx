@@ -14,7 +14,9 @@ import {
   LogOut,
   Zap,
   ChevronRight,
-  Activity
+  Activity,
+  Lightbulb,
+  Shield
 } from 'lucide-react';
 
 const navigation = [
@@ -23,8 +25,14 @@ const navigation = [
   { name: 'AI Chat', href: '/chat', icon: MessageCircle, color: 'text-primary-semantic' },
   { name: 'Code Playground', href: '/playground', icon: Code, color: 'text-primary-semantic' },
   { name: 'Coding Games', href: '/games', icon: Gamepad2, color: 'text-primary-semantic' },
+  { name: 'Suggestions', href: '/suggestions', icon: Lightbulb, color: 'text-primary-semantic' },
   { name: 'Profile', href: '/profile', icon: User, color: 'text-primary-semantic' },
   { name: 'Settings', href: '/settings', icon: Settings, color: 'text-primary-semantic' },
+];
+
+// Admin-only navigation items
+const adminNavigation = [
+  { name: 'Admin - Suggestions', href: '/admin/suggestions', icon: Shield, color: 'text-destructive' },
 ];
 
 const Sidebar: React.FC = () => {
@@ -197,6 +205,99 @@ const Sidebar: React.FC = () => {
             </motion.div>
           );
         })}
+
+        {/* Admin Navigation */}
+        {user?.email === 'admin@mail.com' && (
+          <>
+            <div className="px-3 py-2 mt-6">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Admin Panel
+              </h3>
+            </div>
+            {adminNavigation.map((item, index) => {
+              const isActive = location.pathname === item.href ||
+                (item.href !== '/dashboard' && location.pathname.startsWith(item.href));
+
+              return (
+                <motion.div
+                  key={item.name}
+                  initial={{ x: -20, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ duration: 0.3, delay: 0.1 * (navigation.length + index + 3) }}
+                >
+                  <NavLink
+                    to={item.href}
+                    className={`group relative flex items-center px-3 py-3 text-sm font-medium font-robotic rounded-xl transition-all duration-300 overflow-hidden ${isActive
+                        ? 'bg-gradient-to-r from-destructive/20 to-destructive/10 text-destructive shadow-glow-sm border border-destructive/30 backdrop-blur-sm'
+                        : 'text-muted-foreground hover:text-destructive hover:bg-destructive/5 hover:backdrop-blur-sm'
+                      }`}
+                    onMouseEnter={() => setHoveredItem(item.name)}
+                    onMouseLeave={() => setHoveredItem(null)}
+                  >
+                    {/* Background glow effect */}
+                    <AnimatePresence>
+                      {(isActive || hoveredItem === item.name) && (
+                        <motion.div
+                          className={`absolute inset-0 rounded-xl ${isActive 
+                            ? 'bg-gradient-to-r from-destructive/15 to-destructive/10' 
+                            : 'bg-gradient-to-r from-destructive/8 to-destructive/8'
+                          }`}
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.8 }}
+                          transition={{ duration: 0.2 }}
+                        />
+                      )}
+                    </AnimatePresence>
+
+                    <motion.div
+                      animate={isActive ? { scale: [1, 1.1, 1] } : {}}
+                      transition={{ duration: 0.3 }}
+                      className="relative z-10"
+                    >
+                      <item.icon
+                        className={`flex-shrink-0 mr-3 h-5 w-5 transition-colors duration-300 ${isActive ? 'text-destructive': 'text-muted-foreground group-hover:text-destructive'
+                          }`}
+                      />
+                    </motion.div>
+
+                    <span className="truncate relative z-10 tracking-wide">
+                      {item.name}
+                    </span>
+
+                    {/* Active indicator */}
+                    <AnimatePresence>
+                      {isActive && (
+                        <motion.div
+                          className="ml-auto relative z-10"
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -10 }}
+                        >
+                          <ChevronRight className="h-4 w-4 text-destructive" />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    {/* Hover effect */}
+                    <AnimatePresence>
+                      {hoveredItem === item.name && !isActive && (
+                        <motion.div
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                          initial={{ opacity: 0, scale: 0 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0 }}
+                        >
+                          <Shield className="h-4 w-4 text-destructive" />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </NavLink>
+                </motion.div>
+              );
+            })}
+          </>
+        )}
       </nav>
 
       {/* Logout */}

@@ -10,7 +10,10 @@ import type {
   ChatSession,
   QuizResult,
   UserStats,
-  ChatStats
+  ChatStats,
+  Suggestion,
+  SuggestionFormData,
+  SuggestionsResponse
 } from '../types/index';
 
 class ApiService {
@@ -502,6 +505,81 @@ class ApiService {
   // Health check
   async healthCheck(): Promise<{ status: string; timestamp: string; environment: string }> {
     const response = await this.api.get('/health');
+    return response.data;
+  }
+
+  // Suggestion methods
+  async submitSuggestion(suggestionData: SuggestionFormData): Promise<{ message: string; suggestion: Suggestion }> {
+    const response = await this.api.post('/suggestions', suggestionData);
+    return response.data;
+  }
+
+  async getMySuggestions(page = 1, limit = 10): Promise<SuggestionsResponse> {
+    const response = await this.api.get(`/suggestions/my-suggestions?page=${page}&limit=${limit}`);
+    return response.data;
+  }
+
+  async getPublicSuggestions(page = 1, limit = 10, category?: string, sortBy?: string): Promise<SuggestionsResponse> {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString()
+    });
+    
+    if (category && category !== 'all') {
+      params.append('category', category);
+    }
+    
+    if (sortBy) {
+      params.append('sortBy', sortBy);
+    }
+
+    const response = await this.api.get(`/suggestions/public?${params.toString()}`);
+    return response.data;
+  }
+
+  async voteSuggestion(suggestionId: string, voteType: 'upvote' | 'downvote' | 'remove'): Promise<{ message: string; voteCount: any; userVote: string | null }> {
+    const response = await this.api.post(`/suggestions/${suggestionId}/vote`, { voteType });
+    return response.data;
+  }
+
+  async deleteSuggestion(suggestionId: string): Promise<{ message: string }> {
+    const response = await this.api.delete(`/suggestions/${suggestionId}`);
+    return response.data;
+  }
+
+  // Admin-only suggestion methods
+  async getAllSuggestions(page = 1, limit = 20, status?: string, category?: string, sortBy?: string, sortOrder?: string): Promise<SuggestionsResponse> {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString()
+    });
+    
+    if (status && status !== 'all') {
+      params.append('status', status);
+    }
+    
+    if (category && category !== 'all') {
+      params.append('category', category);
+    }
+    
+    if (sortBy) {
+      params.append('sortBy', sortBy);
+    }
+    
+    if (sortOrder) {
+      params.append('sortOrder', sortOrder);
+    }
+
+    const response = await this.api.get(`/suggestions/admin/all?${params.toString()}`);
+    return response.data;
+  }
+
+  async updateSuggestionStatus(suggestionId: string, status: string, adminNotes?: string, priority?: string): Promise<{ message: string; suggestion: Suggestion }> {
+    const response = await this.api.patch(`/suggestions/admin/${suggestionId}/status`, {
+      status,
+      adminNotes,
+      priority
+    });
     return response.data;
   }
 }

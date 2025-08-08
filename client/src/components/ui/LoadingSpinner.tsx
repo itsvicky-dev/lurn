@@ -29,47 +29,60 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
     xl: 'text-lg'
   };
 
+  const dotSizeClasses = {
+    sm: 'h-1.5 w-1.5',
+    md: 'h-2 w-2',
+    lg: 'h-3 w-3',
+    xl: 'h-4 w-4'
+  };
+
   if (variant === 'cyber') {
     return (
-      <div className={clsx('flex flex-col items-center space-y-3', className)}>
-        <div className="relative">
+      <div className={clsx('flex flex-col items-center justify-center space-y-3', className)}>
+        <div className="relative flex items-center justify-center">
+          {/* Outer ring */}
           <motion.div
             className={clsx(
-              'rounded-full border-2 border-primary/30',
+              'rounded-full border-2 border-primary-500/30',
+              sizeClasses[size]
+            )}
+            animate={{ rotate: 360 }}
+            transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+          />
+          {/* Inner spinning ring */}
+          <motion.div
+            className={clsx(
+              'absolute inset-0 rounded-full border-2 border-transparent border-t-primary-500',
               sizeClasses[size]
             )}
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+            style={{ 
+              filter: 'drop-shadow(0 0 8px hsl(var(--primary) / 0.4))',
+              boxShadow: '0 0 15px hsl(var(--primary) / 0.2)'
+            }}
           />
+          {/* Pulsing core */}
           <motion.div
             className={clsx(
-              'absolute inset-0 rounded-full border-2 border-transparent border-t-primary',
-              sizeClasses[size]
-            )}
-            animate={{ rotate: 360 }}
-            transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
-            style={{ filter: 'drop-shadow(0 0 10px hsl(var(--primary) / 0.3))' }}
-          />
-          <motion.div
-            className={clsx(
-              'absolute inset-1 rounded-full bg-gradient-to-r from-primary/20 to-accent/20',
-              size === 'sm' ? 'inset-0.5' : size === 'md' ? 'inset-1' : 'inset-1.5'
+              'absolute rounded-full bg-gradient-to-r from-primary-500/30 to-accent-500/30',
+              size === 'sm' ? 'inset-1' : size === 'md' ? 'inset-1.5' : size === 'lg' ? 'inset-2' : 'inset-3'
             )}
             animate={{ 
-              scale: [1, 1.1, 1],
-              opacity: [0.5, 0.8, 0.5]
+              scale: [0.8, 1.1, 0.8],
+              opacity: [0.4, 0.8, 0.4]
             }}
-            transition={{ duration: 1.5, repeat: Infinity }}
+            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
           />
         </div>
         {text && (
           <motion.p 
             className={clsx(
-              'font-robotic text-primary tracking-wider',
+              'font-robotic text-primary-600 dark:text-primary-400 tracking-wider text-center',
               textSizeClasses[size]
             )}
-            animate={{ opacity: [0.5, 1, 0.5] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
+            animate={{ opacity: [0.6, 1, 0.6] }}
+            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
           >
             {text}
           </motion.p>
@@ -80,74 +93,108 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
 
   if (variant === 'pulse') {
     return (
-      <div className={clsx('flex flex-col items-center space-y-3', className)}>
-        <div className="relative">
+      <div className={clsx('flex flex-col items-center justify-center space-y-3', className)}>
+        <div className="relative flex items-center justify-center">
+          {/* Main pulsing circle */}
           <motion.div
             className={clsx(
-              'rounded-full bg-gradient-to-r from-primary to-accent',
+              'rounded-full bg-gradient-to-r from-primary-500 to-accent-500',
               sizeClasses[size]
             )}
             animate={{ 
-              scale: [1, 1.2, 1],
-              opacity: [0.7, 1, 0.7]
+              scale: [1, 1.15, 1],
+              opacity: [0.8, 1, 0.8]
             }}
-            transition={{ duration: 1, repeat: Infinity }}
-            style={{ filter: 'drop-shadow(0 0 15px hsl(var(--primary) / 0.4))' }}
+            transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+            style={{ 
+              filter: 'drop-shadow(0 0 12px hsl(var(--primary) / 0.5))',
+              boxShadow: '0 0 20px hsl(var(--primary) / 0.3)'
+            }}
           />
+          {/* Expanding ring effect */}
           <motion.div
             className={clsx(
-              'absolute inset-0 rounded-full bg-gradient-to-r from-primary/80 to-accent/80',
+              'absolute inset-0 rounded-full bg-gradient-to-r from-primary-400/60 to-accent-400/60',
               sizeClasses[size]
             )}
             animate={{ 
-              scale: [1, 1.5, 1],
-              opacity: [0.5, 0, 0.5]
+              scale: [1, 1.8, 1],
+              opacity: [0.6, 0, 0.6]
             }}
-            transition={{ duration: 1, repeat: Infinity, delay: 0.2 }}
+            transition={{ duration: 1.5, repeat: Infinity, delay: 0.3, ease: 'easeOut' }}
+          />
+          {/* Secondary expanding ring */}
+          <motion.div
+            className={clsx(
+              'absolute inset-0 rounded-full bg-gradient-to-r from-primary-300/40 to-accent-300/40',
+              sizeClasses[size]
+            )}
+            animate={{ 
+              scale: [1, 2.2, 1],
+              opacity: [0.4, 0, 0.4]
+            }}
+            transition={{ duration: 1.5, repeat: Infinity, delay: 0.6, ease: 'easeOut' }}
           />
         </div>
         {text && (
-          <p className={clsx(
-            'font-robotic text-muted-foreground',
-            textSizeClasses[size]
-          )}>
+          <motion.p 
+            className={clsx(
+              'font-robotic text-muted-foreground text-center',
+              textSizeClasses[size]
+            )}
+            animate={{ opacity: [0.7, 1, 0.7] }}
+            transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+          >
             {text}
-          </p>
+          </motion.p>
         )}
       </div>
     );
   }
 
   if (variant === 'dots') {
+    const bounceHeight = size === 'sm' ? -6 : size === 'md' ? -8 : size === 'lg' ? -10 : -12;
+    const spacing = size === 'sm' ? 'space-x-1' : size === 'md' ? 'space-x-1.5' : 'space-x-2';
+    
     return (
-      <div className={clsx('flex flex-col items-center space-y-3', className)}>
-        <div className="flex space-x-1">
+      <div className={clsx('flex flex-col items-center justify-center space-y-3', className)}>
+        <div className={clsx('flex items-center', spacing)}>
           {[0, 1, 2].map((i) => (
             <motion.div
               key={i}
               className={clsx(
-                'rounded-full bg-primary',
-                size === 'sm' ? 'h-2 w-2' : size === 'md' ? 'h-3 w-3' : 'h-4 w-4'
+                'rounded-full bg-gradient-to-r from-primary-500 to-primary-600',
+                dotSizeClasses[size]
               )}
               animate={{
-                y: [0, -10, 0],
-                opacity: [0.5, 1, 0.5]
+                y: [0, bounceHeight, 0],
+                opacity: [0.6, 1, 0.6],
+                scale: [1, 1.1, 1]
               }}
               transition={{
-                duration: 0.6,
+                duration: 0.8,
                 repeat: Infinity,
-                delay: i * 0.1
+                delay: i * 0.15,
+                ease: 'easeInOut'
+              }}
+              style={{ 
+                filter: 'drop-shadow(0 0 4px hsl(var(--primary) / 0.4))',
+                boxShadow: '0 0 8px hsl(var(--primary) / 0.2)'
               }}
             />
           ))}
         </div>
         {text && (
-          <p className={clsx(
-            'font-robotic text-muted-foreground',
-            textSizeClasses[size]
-          )}>
+          <motion.p 
+            className={clsx(
+              'font-robotic text-muted-foreground text-center',
+              textSizeClasses[size]
+            )}
+            animate={{ opacity: [0.7, 1, 0.7] }}
+            transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+          >
             {text}
-          </p>
+          </motion.p>
         )}
       </div>
     );
@@ -155,23 +202,43 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
 
   // Default spinner
   return (
-    <div className={clsx('flex flex-col items-center space-y-3', className)}>
-      <motion.div
-        className={clsx(
-          'rounded-full border-2 border-muted border-t-primary',
-          sizeClasses[size]
-        )}
-        animate={{ rotate: 360 }}
-        transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-        style={{ filter: 'drop-shadow(0 0 8px hsl(var(--primary) / 0.25))' }}
-      />
+    <div className={clsx('flex flex-col items-center justify-center space-y-3', className)}>
+      <div className="relative flex items-center justify-center">
+        <motion.div
+          className={clsx(
+            'rounded-full border-2 border-muted border-t-primary-500',
+            sizeClasses[size]
+          )}
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1.2, repeat: Infinity, ease: 'linear' }}
+          style={{ 
+            filter: 'drop-shadow(0 0 6px hsl(var(--primary) / 0.3))',
+            boxShadow: '0 0 12px hsl(var(--primary) / 0.15)'
+          }}
+        />
+        {/* Subtle inner glow */}
+        <motion.div
+          className={clsx(
+            'absolute rounded-full bg-primary-500/10',
+            size === 'sm' ? 'inset-1' : size === 'md' ? 'inset-1.5' : size === 'lg' ? 'inset-2' : 'inset-3'
+          )}
+          animate={{ 
+            opacity: [0.3, 0.6, 0.3]
+          }}
+          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+        />
+      </div>
       {text && (
-        <p className={clsx(
-          'font-robotic text-muted-foreground',
-          textSizeClasses[size]
-        )}>
+        <motion.p 
+          className={clsx(
+            'font-robotic text-muted-foreground text-center',
+            textSizeClasses[size]
+          )}
+          animate={{ opacity: [0.7, 1, 0.7] }}
+          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+        >
           {text}
-        </p>
+        </motion.p>
       )}
     </div>
   );

@@ -445,6 +445,66 @@ export interface GameLeaderboardEntry {
   averageTime: number;
 }
 
+// Suggestion types
+export interface Suggestion {
+  id: string;
+  title: string;
+  description: string;
+  category: 'feature' | 'improvement' | 'bug' | 'content' | 'ui/ux' | 'other';
+  priority: 'low' | 'medium' | 'high' | 'critical';
+  status: 'pending' | 'under_review' | 'approved' | 'rejected' | 'implemented';
+  submittedBy: string;
+  submitterEmail: string;
+  submitterName: string;
+  adminNotes?: string;
+  votes: {
+    upvotes: Array<{
+      user: string;
+      createdAt: string;
+    }>;
+    downvotes: Array<{
+      user: string;
+      createdAt: string;
+    }>;
+  };
+  voteCount?: {
+    upvotes: number;
+    downvotes: number;
+    total: number;
+  };
+  userVote?: 'upvote' | 'downvote' | null;
+  attachments?: Array<{
+    filename: string;
+    url: string;
+    type: string;
+  }>;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SuggestionFormData {
+  title: string;
+  description: string;
+  category: 'feature' | 'improvement' | 'bug' | 'content' | 'ui/ux' | 'other';
+  tags?: string[];
+}
+
+export interface SuggestionStats {
+  byStatus: Record<string, number>;
+  byCategory: Record<string, number>;
+}
+
+export interface SuggestionsResponse {
+  suggestions: Suggestion[];
+  pagination: {
+    current: number;
+    pages: number;
+    total: number;
+  };
+  stats?: SuggestionStats;
+}
+
 // Error types
 export interface AppError {
   message: string;

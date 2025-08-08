@@ -114,19 +114,22 @@ const CodingQuizGame: React.FC<CodingQuizGameProps> = ({
 
   // Check if session is already completed on mount
   useEffect(() => {
-    if (session?.status === 'completed' && session.quizScore !== undefined) {
+    if (session?.status === 'completed' && session.testResults && session.testResults.length > 0) {
+      
+      // Calculate quiz metrics from test results
+      const correctAnswers = session.testResults.filter(result => result.passed).length;
+      const totalQuestions = questions.length;
+      const accuracy = totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0;
       
       // Reconstruct quiz results from session data
       const reconstructedResult: QuizResult = {
-        score: session.quizScore || session.score || 0,
+        score: session.score || 0,
         totalPoints: game.points || 0,
-        correctAnswers: session.correctAnswers || 0,
-        totalQuestions: session.totalQuestions || questions.length,
+        correctAnswers,
+        totalQuestions,
         timeSpent: (session.timeSpent || 0) * 1000, // Convert back to milliseconds
-        accuracy: session.correctAnswers && session.totalQuestions 
-          ? (session.correctAnswers / session.totalQuestions) * 100 
-          : 0,
-        results: session.testResults?.map((testResult: any, index: number) => ({
+        accuracy,
+        results: session.testResults?.map((testResult, index) => ({
           questionIndex: index,
           question: questions[index]?.question || '',
           userAnswer: testResult.actualOutput || '',

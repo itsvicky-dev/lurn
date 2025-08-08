@@ -61,6 +61,7 @@ const CreateLearningPathModal: React.FC<CreateLearningPathModalProps> = ({
 
   const [currentStep, setCurrentStep] = useState(1);
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
   const [formData, setFormData] = useState<OnboardingRequest & { 
     customSubject: string; 
     specificGoals: string; 
@@ -128,6 +129,9 @@ const CreateLearningPathModal: React.FC<CreateLearningPathModalProps> = ({
       return;
     }
 
+    // Show loading state
+    setIsCreating(true);
+
     // Prepare the onboarding request data
     const onboardingData: OnboardingRequest = {
       subjects,
@@ -145,32 +149,32 @@ const CreateLearningPathModal: React.FC<CreateLearningPathModalProps> = ({
       userPreferences: formData.userPreferences
     };
 
-    // Always use background processing for learning path creation
-    try {
-      const primarySubject = subjects[0];
-      const preferences = {
-        ...onboardingData,
-        ...additionalPreferences,
-        subjects: subjects
-      };
-      
-      // Request notification permission
-      await notificationService.requestPermission();
-      
-      await backgroundTaskService.createLearningPathInBackground(
+    // Start background processing without waiting for completion
+    const primarySubject = subjects[0];
+    const preferences = {
+      ...onboardingData,
+      ...additionalPreferences,
+      subjects: subjects
+    };
+    
+    // Request notification permission and start background task (don't await)
+    notificationService.requestPermission().then(() => {
+      backgroundTaskService.createLearningPathInBackground(
         primarySubject, 
         preferences,
         'manual'
-      );
-      
+      ).catch(error => {
+        console.error('Failed to start background task:', error);
+        toast.error('Failed to start learning path creation. Please try again.');
+      });
+    });
+
+    // Show loading for 2 seconds, then close modal
+    setTimeout(() => {
+      setIsCreating(false);
       toast.success('🚀 Learning path creation started! We\'ll notify you when it\'s ready.');
-      onClose(); // Close modal after successful queuing
-      
-    } catch (error) {
-      console.error('Failed to start background task:', error);
-      toast.error('Failed to start learning path creation. Please try again.');
-      onClose(); // Close modal even on error since the user can try again from the main page
-    }
+      onClose();
+    }, 2000);
   };
 
 
@@ -557,10 +561,17 @@ const CreateLearningPathModal: React.FC<CreateLearningPathModalProps> = ({
           ) : (
             <button
               onClick={handleSubmit}
-              disabled={!canProceed()}
+              disabled={!canProceed() || isCreating}
               className="btn-primary btn-md flex items-center space-x-2 px-6 py-2 h-10 min-w-[160px] disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <span>Queue Creation</span>
+              {isCreating ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                  <span>Creating...</span>
+                </>
+              ) : (
+                <span>Queue Creation</span>
+              )}
             </button>
           )}
         </div>

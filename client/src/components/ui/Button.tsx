@@ -78,7 +78,7 @@ const Button: React.FC<ButtonProps> = ({
           )
         )}
         
-        <span>{children}</span>
+        <span className='flex items-center'>{children}</span>
         
         {!loading && icon && iconPosition === 'right' && (
           <span className="flex-shrink-0">{icon}</span>

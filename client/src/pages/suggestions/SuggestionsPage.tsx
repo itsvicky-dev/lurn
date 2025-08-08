@@ -26,7 +26,7 @@ type TabType = 'public' | 'my-suggestions' | 'submit';
 
 const SuggestionsPage: React.FC = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<TabType>('public');
+  const [activeTab, setActiveTab] = useState<TabType>('my-suggestions');
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [pagination, setPagination] = useState({
@@ -213,7 +213,7 @@ const SuggestionsPage: React.FC = () => {
         {/* Tabs */}
         <div className="flex flex-wrap gap-2 mb-6">
           {[
-            { id: 'public', label: 'Public Suggestions', icon: Users },
+            // { id: 'public', label: 'Public Suggestions', icon: Users },
             { id: 'my-suggestions', label: 'My Suggestions', icon: Clock },
             { id: 'submit', label: 'Submit New', icon: Plus }
           ].map(({ id, label, icon: Icon }) => (
@@ -223,7 +223,7 @@ const SuggestionsPage: React.FC = () => {
               onClick={() => setActiveTab(id as TabType)}
               className="flex items-center gap-2"
             >
-              <Icon className="h-4 w-4" />
+              <Icon className="h-4 w-4 mr-2" />
               {label}
             </Button>
           ))}

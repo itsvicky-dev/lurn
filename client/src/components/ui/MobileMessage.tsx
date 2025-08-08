@@ -44,14 +44,11 @@ const MobileMessage: React.FC = () => {
               <p>• Tap the menu (⋮ or aA) → "Request Desktop Site"</p>
               <p><strong>For Firefox:</strong></p>
               <p>• Tap the menu (⋮) → "Desktop site"</p>
-              <p className="pt-2 text-xs text-center text-primary">
-                The app will automatically detect when desktop mode is enabled
-              </p>
             </div>
           </div>
 
           {/* Manual Override Button */}
-          <div className="pt-4">
+          {/* <div className="pt-4">
             <button
               onClick={enableDesktopView}
               className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-3 px-4 rounded-lg font-medium transition-colors"
@@ -61,17 +58,17 @@ const MobileMessage: React.FC = () => {
             <p className="text-xs text-muted-foreground text-center mt-2">
               Use this if auto-detection isn't working
             </p>
-          </div>
+          </div> */}
 
           {/* Debug Info */}
-          <div className="pt-4 text-xs text-muted-foreground">
+          {/* <div className="pt-4 text-xs text-muted-foreground">
             <p><strong>Screen:</strong> {window.innerWidth} × {window.innerHeight}</p>
             <p><strong>Ratio:</strong> {(window.innerWidth / window.innerHeight).toFixed(2)}</p>
-          </div>
+          </div> */}
         </div>
 
         {/* Progress Indicator */}
-        <div className="pt-6 border-t border-border">
+        <div className="pt-6">
           <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
             <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
             <span>Mobile optimization in progress...</span>

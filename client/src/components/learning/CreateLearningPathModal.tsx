@@ -83,12 +83,10 @@ const CreateLearningPathModal: React.FC<CreateLearningPathModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleSubjectToggle = (subject: string) => {
+  const handleSubjectSelect = (subject: string) => {
     setFormData(prev => ({
       ...prev,
-      subjects: prev.subjects.includes(subject)
-        ? prev.subjects.filter(s => s !== subject)
-        : [...prev.subjects, subject],
+      subjects: [subject], // Only allow single subject selection
       customSubject: ''
     }));
   };
@@ -117,11 +115,11 @@ const CreateLearningPathModal: React.FC<CreateLearningPathModalProps> = ({
   const handleSubmit = async () => {
     // Validate form data
     const subjects = formData.customSubject.trim() 
-      ? [...formData.subjects, formData.customSubject.trim()]
+      ? [formData.customSubject.trim()] // Only use custom subject if provided
       : formData.subjects;
     
     if (subjects.length === 0) {
-      toast.error('Please select at least one subject or enter a custom subject');
+      toast.error('Please select a subject or enter a custom subject');
       return;
     }
 
@@ -217,7 +215,7 @@ const CreateLearningPathModal: React.FC<CreateLearningPathModalProps> = ({
                 What would you like to learn?
               </h3>
               <p className="text-muted-foreground">
-                Select the subjects you're interested in (you can choose multiple)
+                Select a subject you're interested in
               </p>
             </div>
 
@@ -231,7 +229,7 @@ const CreateLearningPathModal: React.FC<CreateLearningPathModalProps> = ({
                   <button
                     key={subject}
                     type="button"
-                    onClick={() => handleSubjectToggle(subject)}
+                    onClick={() => handleSubjectSelect(subject)}
                     className={`p-3 text-sm font-medium rounded-lg border-2 transition-all duration-300 ${
                       formData.subjects.includes(subject)
                         ? 'border-primary bg-primary/20 text-primary shadow-lg shadow-primary/25 ring-2 ring-primary/30'
@@ -264,7 +262,7 @@ const CreateLearningPathModal: React.FC<CreateLearningPathModalProps> = ({
 
             {formData.subjects.length > 0 && (
               <div className="text-center text-sm text-muted-foreground">
-                Selected: {formData.subjects.join(', ')}
+                Selected: {formData.subjects[0]}
               </div>
             )}
           </div>

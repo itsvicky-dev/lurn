@@ -80,12 +80,11 @@ const OnboardingPage: React.FC = () => {
     }
   };
 
-  const handleSubjectToggle = (subject: string) => {
+  const handleSubjectSelect = (subject: string) => {
     setFormData(prev => ({
       ...prev,
-      subjects: prev.subjects.includes(subject)
-        ? prev.subjects.filter(s => s !== subject)
-        : [...prev.subjects, subject]
+      subjects: [subject], // Only allow single subject selection
+      customSubject: '' // Clear custom subject when selecting from list
     }));
   };
 
@@ -113,11 +112,11 @@ const OnboardingPage: React.FC = () => {
   const handleSubmit = async () => {
     // Validate form data
     const subjects = formData.customSubject.trim() 
-      ? [...formData.subjects, formData.customSubject.trim()]
+      ? [formData.customSubject.trim()] // Only use custom subject if provided
       : formData.subjects;
     
     if (subjects.length === 0) {
-      toast.error('Please select at least one subject or enter a custom subject');
+      toast.error('Please select a subject or enter a custom subject');
       return;
     }
 
@@ -222,14 +221,14 @@ const OnboardingPage: React.FC = () => {
           <div className="space-y-6">
             <div className="text-center">
               <h2 className="text-2xl font-bold text-foreground">What would you like to learn?</h2>
-              <p className="mt-2 text-muted-foreground">Select the subjects you're interested in (you can choose multiple)</p>
+              <p className="mt-2 text-muted-foreground">Select a subject you're interested in</p>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {SUBJECTS.map((subject) => (
                 <button
                   key={subject}
                   type="button"
-                  onClick={() => handleSubjectToggle(subject)}
+                  onClick={() => handleSubjectSelect(subject)}
                   className={`p-3 text-sm font-medium rounded-lg border-2 transition-all duration-300 ${
                     formData.subjects.includes(subject)
                       ? 'border-primary bg-primary/20 text-primary shadow-lg shadow-primary/25 ring-2 ring-primary/30'
@@ -261,7 +260,7 @@ const OnboardingPage: React.FC = () => {
 
             {formData.subjects.length > 0 && (
               <div className="text-center text-sm text-muted-foreground">
-                Selected: {formData.subjects.join(', ')}
+                Selected: {formData.subjects[0]}
               </div>
             )}
           </div>

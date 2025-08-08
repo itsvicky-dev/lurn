@@ -18,7 +18,8 @@ import {
   Menu,
   X,
   ChevronDown,
-  ArrowLeft
+  ArrowLeft,
+  Lightbulb
 } from 'lucide-react';
 import ThemeToggle from '../ui/ThemeToggle';
 import NotificationList from '../ui/NotificationList';
@@ -29,6 +30,7 @@ const navigation = [
   { name: 'Chat', href: '/chat', icon: MessageCircle },
   { name: 'Playground', href: '/playground', icon: Code },
   { name: 'Games', href: '/games', icon: Gamepad2 },
+  { name: 'Suggestions', href: '/suggestions', icon: Lightbulb },
   { name: 'Profile', href: '/profile', icon: User },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
@@ -53,6 +55,7 @@ const MinimalLayout: React.FC = () => {
     if (path === '/chat' || path.startsWith('/chat/')) return 'AI Chat';
     if (path === '/playground') return 'Code Playground';
     if (path === '/games') return 'Coding Games';
+    if (path === '/suggestions') return 'Suggestions';
     if (path === '/profile') return 'Profile';
     if (path === '/settings') return 'Settings';
     return 'Lurn';
@@ -75,9 +78,9 @@ const MinimalLayout: React.FC = () => {
     // For chat sub-pages, go back to chat main page
     if (path.startsWith('/chat/')) return '/chat';
     
-    // For all main pages (learning, chat, playground, games, profile, settings), go back to dashboard
+    // For all main pages (learning, chat, playground, games, suggestions, profile, settings), go back to dashboard
     if (path === '/learning' || path === '/chat' || path === '/playground' || 
-        path === '/games' || path === '/profile' || path === '/settings') {
+        path === '/games' || path === '/suggestions' || path === '/profile' || path === '/settings') {
       return '/dashboard';
     }
     
@@ -100,7 +103,7 @@ const MinimalLayout: React.FC = () => {
     
     // For main pages, go back to dashboard
     if (path === '/learning' || path === '/chat' || path === '/playground' || 
-        path === '/games' || path === '/profile' || path === '/settings') {
+        path === '/games' || path === '/suggestions' || path === '/profile' || path === '/settings') {
       return 'Back to Dashboard';
     }
     
@@ -134,7 +137,7 @@ const MinimalLayout: React.FC = () => {
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-1">
-              {navigation.slice(0, 5).map((item) => {
+              {navigation.slice(0, 6).map((item) => {
                 const isActive = location.pathname === item.href ||
                   (item.href !== '/dashboard' && location.pathname.startsWith(item.href));
 
@@ -382,37 +385,6 @@ const MinimalLayout: React.FC = () => {
           <Outlet />
         </motion.div>
       </main>
-
-      {/* Quick Action Button */}
-      <motion.div
-        className="fixed bottom-[4rem] right-6 z-40"
-        initial={{ scale: 0, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ duration: 0.3, delay: 0.5 }}
-      >
-        <NavLink
-          to="/chat"
-          className="flex items-center justify-center w-12 h-12 bg-primary text-primary-foreground rounded-full shadow-lg hover:shadow-xl transition-all duration-300 group"
-        >
-          <motion.div
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-          >
-            <MessageCircle className="h-5 w-5" />
-          </motion.div>
-        </NavLink>
-        <NavLink
-          to="/playground"
-          className="flex items-center justify-center w-12 h-12 bg-primary text-primary-foreground rounded-full shadow-lg hover:shadow-xl transition-all duration-300 group"
-        >
-          <motion.div
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-          >
-            <Code className="h-5 w-5" />
-          </motion.div>
-        </NavLink>
-      </motion.div>
 
       {/* Click outside handlers */}
       {(userMenuOpen || notificationListOpen) && (

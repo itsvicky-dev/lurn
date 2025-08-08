@@ -17,7 +17,8 @@ import {
   Star,
   TrendingUp,
   ArrowLeft,
-  LogOut
+  LogOut,
+  Lightbulb
 } from 'lucide-react';
 import ThemeToggle from '../ui/ThemeToggle';
 import NotificationList from '../ui/NotificationList';
@@ -57,6 +58,13 @@ const navigation = [
     icon: Gamepad2,
     gradient: 'from-indigo-500 via-purple-500 to-pink-500',
     description: 'Learn Through Play'
+  },
+  {
+    name: 'Suggestions',
+    href: '/suggestions',
+    icon: Lightbulb,
+    gradient: 'from-yellow-500 via-amber-500 to-orange-500',
+    description: 'Share Your Ideas'
   },
   {
     name: 'Profile',
@@ -561,36 +569,6 @@ const CardLayout: React.FC = () => {
           </motion.div>
         )}
       </main>
-
-
-      {/* Floating Action Buttons */}
-      <div className="fixed bottom-[4rem] right-6 space-y-3 z-40">
-        {/* Quick Actions */}
-        <motion.div
-          className="flex flex-col space-y-2"
-          initial={{ x: 100, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.5 }}
-        >
-          <NavLink
-            to="/chat"
-            className="p-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 group"
-          >
-            <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-              <MessageCircle className="h-6 w-6" />
-            </motion.div>
-          </NavLink>
-
-          <NavLink
-            to="/playground"
-            className="p-3 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 group"
-          >
-            <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-              <Code className="h-6 w-6" />
-            </motion.div>
-          </NavLink>
-        </motion.div>
-      </div>
 
       {/* Background Effects */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">

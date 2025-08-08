@@ -66,6 +66,10 @@ class AIService {
     // Use environment model as preferred, but not exclusive
     this.preferredModel = process.env.OPENROUTER_MODEL || RECOMMENDED_FREE_MODEL;
     
+    // Initialize backward compatibility properties
+    this.defaultModel = this.preferredModel;
+    this.fallbackModels = this.modelPool.map(m => m.model).filter(m => m !== this.defaultModel);
+    
     // Enhanced rate limit tracking with different timeouts per model
     this.rateLimitedModels = new Map(); // Track which models are rate limited and when
     this.modelStats = new Map(); // Track success/failure rates
@@ -392,16 +396,19 @@ CRITICAL REQUIREMENTS:
 - Do NOT include // or /* */ comments in the JSON response` }
     ];
 
-    console.log(`🤖 Requesting learning path generation from AI model: ${this.defaultModel} (${batchSize} batch)`);
+    console.log(`🤖 Requesting learning path generation from AI model pool (${batchSize} batch)`);
     console.log(`📊 Expected: EXACTLY ${exactModuleCount} modules with EXACTLY ${exactTopicCount} topics each`);
-    console.log(`🔑 API Key configured: ${this.apiKey ? 'Yes' : 'No'}`);
+    console.log(`🔑 API Key configured: ${this.currentApiKey ? 'Yes' : 'No'}`);
     console.log(`🌐 Base URL: ${this.baseURL}`);
     
     let response;
     let lastError;
     
-    // Try primary model first, then fallback models if needed
-    const modelsToTry = [this.defaultModel, ...this.fallbackModels.filter(m => m !== this.defaultModel)];
+    // Get available models from the model pool
+    const availableModels = this.modelPool
+      .filter(modelInfo => !this.isModelRateLimited(modelInfo.model))
+      .map(modelInfo => modelInfo.model);
+    const modelsToTry = availableModels.length > 0 ? availableModels : [this.selectBestAvailableModel()];
     
     for (const model of modelsToTry) {
       try {
@@ -573,7 +580,7 @@ Create 10-14 topics per module. Focus on advanced, specialized, and practical ap
       { role: 'user', content: `Generate ${count} additional advanced modules for ${subject}` }
     ];
 
-    console.log(`🤖 Requesting additional modules generation from AI model: ${this.defaultModel}`);
+    console.log(`🤖 Requesting additional modules generation from AI model pool`);
     
     const response = await this.generateCompletion(messages, {
       temperature: 0.7,
@@ -1168,8 +1175,8 @@ Format your response with clear sections and specific examples.`;
   // Utility methods for free model management
   getAvailableFreeModels() {
     return {
-      default: this.defaultModel,
-      fallbacks: this.fallbackModels,
+      default: this.defaultModel || this.preferredModel,
+      fallbacks: this.fallbackModels || [],
       all: Object.values(FREE_MODELS),
       detailed: Object.entries(FREE_MODELS).map(([key, value]) => ({
         key,
@@ -1180,9 +1187,10 @@ Format your response with clear sections and specific examples.`;
   }
 
   getCurrentModel() {
+    const currentModel = this.defaultModel || this.preferredModel;
     return {
-      model: this.defaultModel,
-      info: getModelInfo(this.defaultModel)
+      model: currentModel,
+      info: getModelInfo(currentModel)
     };
   }
 

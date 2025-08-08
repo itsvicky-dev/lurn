@@ -26,8 +26,8 @@ const navigation = [
   { name: 'Code Playground', href: '/playground', icon: Code, color: 'text-primary-semantic' },
   { name: 'Coding Games', href: '/games', icon: Gamepad2, color: 'text-primary-semantic' },
   { name: 'Suggestions', href: '/suggestions', icon: Lightbulb, color: 'text-primary-semantic' },
-  { name: 'Profile', href: '/profile', icon: User, color: 'text-primary-semantic' },
-  { name: 'Settings', href: '/settings', icon: Settings, color: 'text-primary-semantic' },
+  // { name: 'Profile', href: '/profile', icon: User, color: 'text-primary-semantic' },
+  // { name: 'Settings', href: '/settings', icon: Settings, color: 'text-primary-semantic' },
 ];
 
 // Admin-only navigation items

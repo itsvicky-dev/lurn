@@ -17,7 +17,8 @@ import {
   Search,
   Menu,
   X,
-  ArrowLeft
+  ArrowLeft,
+  Lightbulb
 } from 'lucide-react';
 import ThemeToggle from '../ui/ThemeToggle';
 import NotificationList from '../ui/NotificationList';
@@ -28,6 +29,7 @@ const navigation = [
   { name: 'Chat', href: '/chat', icon: MessageCircle, color: 'from-green-500 to-emerald-500' },
   { name: 'Playground', href: '/playground', icon: Code, color: 'from-orange-500 to-red-500' },
   { name: 'Games', href: '/games', icon: Gamepad2, color: 'from-indigo-500 to-purple-500' },
+  { name: 'Suggestions', href: '/suggestions', icon: Lightbulb, color: 'from-yellow-500 to-amber-500' },
   { name: 'Profile', href: '/profile', icon: User, color: 'from-teal-500 to-cyan-500' },
   { name: 'Settings', href: '/settings', icon: Settings, color: 'from-gray-500 to-slate-500' },
 ];
@@ -51,6 +53,7 @@ const ModernLayout: React.FC = () => {
     if (path === '/chat' || path.startsWith('/chat/')) return 'AI Chat';
     if (path === '/playground') return 'Code Playground';
     if (path === '/games') return 'Coding Games';
+    if (path === '/suggestions') return 'Suggestions';
     if (path === '/profile') return 'Profile';
     if (path === '/settings') return 'Settings';
     return 'Lurn';
@@ -73,9 +76,9 @@ const ModernLayout: React.FC = () => {
     // For chat sub-pages, go back to chat main page
     if (path.startsWith('/chat/')) return '/chat';
     
-    // For all main pages (learning, chat, playground, games, profile, settings), go back to dashboard
+    // For all main pages (learning, chat, playground, games, suggestions, profile, settings), go back to dashboard
     if (path === '/learning' || path === '/chat' || path === '/playground' || 
-        path === '/games' || path === '/profile' || path === '/settings') {
+        path === '/games' || path === '/suggestions' || path === '/profile' || path === '/settings') {
       return '/dashboard';
     }
     
@@ -98,7 +101,7 @@ const ModernLayout: React.FC = () => {
     
     // For main pages, go back to dashboard
     if (path === '/learning' || path === '/chat' || path === '/playground' || 
-        path === '/games' || path === '/profile' || path === '/settings') {
+        path === '/games' || path === '/suggestions' || path === '/profile' || path === '/settings') {
       return 'Back to Dashboard';
     }
     
@@ -110,7 +113,7 @@ const ModernLayout: React.FC = () => {
       {/* Floating Navigation Bar */}
       <div className="fixed top-6 left-0 right-0 z-50 flex justify-center px-4 sm:px-6">
         <motion.nav
-          className="bg-card/80 backdrop-blur-xl border border-border/50 rounded-2xl shadow-2xl px-4 sm:px-6 py-3 w-full max-w-6xl"
+          className="bg-card/80 backdrop-blur-xl border border-border/50 rounded-2xl shadow-2xl px-4 sm:px-6 py-3 w-full max-w-7xl"
           initial={{ y: -100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.5, ease: 'easeOut' }}
@@ -118,7 +121,7 @@ const ModernLayout: React.FC = () => {
         <div className="flex items-center justify-between">
           {/* Left Section - Logo */}
           <motion.div
-            className="flex items-center space-x-2 flex-shrink-0"
+            className="flex items-center space-x-2 flex-shrink-0 mr-2"
             whileHover={{ scale: 1.05 }}
           >
             <motion.div
@@ -141,7 +144,7 @@ const ModernLayout: React.FC = () => {
 
           {/* Center Section - Desktop Navigation */}
           <div className="hidden lg:flex items-center space-x-1 flex-1 justify-center">
-            {navigation.slice(0, 5).map((item) => {
+            {navigation.slice(0, 6).map((item) => {
               const isActive = location.pathname === item.href ||
                 (item.href !== '/dashboard' && location.pathname.startsWith(item.href));
 
@@ -179,7 +182,7 @@ const ModernLayout: React.FC = () => {
           {/* Right Section - Actions */}
           <div className="flex items-center space-x-4 flex-shrink-0">
             {/* Search */}
-            <motion.div
+            {/* <motion.div
               className="relative hidden md:block"
               animate={{ scale: searchFocused ? 1.02 : 1 }}
             >
@@ -191,7 +194,7 @@ const ModernLayout: React.FC = () => {
                 onFocus={() => setSearchFocused(true)}
                 onBlur={() => setSearchFocused(false)}
               />
-            </motion.div>
+            </motion.div> */}
 
             {/* Theme Toggle */}
             <ThemeToggle />
@@ -366,35 +369,6 @@ const ModernLayout: React.FC = () => {
           </motion.div>
         </div>
       </main>
-
-      {/* Floating Action Buttons */}
-      <div className="fixed bottom-[4rem] right-6 space-y-3 z-40">
-        {/* Quick Actions */}
-        <motion.div
-          className="flex flex-col space-y-2"
-          initial={{ x: 100, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.5 }}
-        >
-          <NavLink
-            to="/chat"
-            className="p-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 group"
-          >
-            <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-              <MessageCircle className="h-6 w-6" />
-            </motion.div>
-          </NavLink>
-          
-          <NavLink
-            to="/playground"
-            className="p-3 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 group"
-          >
-            <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-              <Code className="h-6 w-6" />
-            </motion.div>
-          </NavLink>
-        </motion.div>
-      </div>
 
       {/* Background Effects */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { clsx } from 'clsx';
+import { useNavigate } from 'react-router-dom';
 import { 
   Plus, 
   Filter, 
@@ -9,7 +10,8 @@ import {
   Clock, 
   Users,
   Lightbulb,
-  MessageSquare
+  MessageSquare,
+  AlertCircle
 } from 'lucide-react';
 import Button from '../../components/ui/Button';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';

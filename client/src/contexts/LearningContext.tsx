@@ -411,7 +411,7 @@ export const LearningProvider: React.FC<LearningProviderProps> = ({ children }) 
     }
   }, [user?.isOnboarded]);
 
-  // Handle network status changes only (remove visibility change from context)
+  // Handle network status changes and learning path creation events
   useEffect(() => {
     if (!user?.isOnboarded) return;
 
@@ -420,11 +420,69 @@ export const LearningProvider: React.FC<LearningProviderProps> = ({ children }) 
       refreshLearningPaths().catch(console.error);
     };
 
-    // Listen for network status changes only
+    const handleLearningPathCreated = (event: CustomEvent) => {
+      console.log('Learning path created in background, refreshing learning paths...', event.detail);
+      
+      // If we have the learning path result, add it immediately for better UX
+      if (event.detail?.result?.learningPath) {
+        const newPath = event.detail.result.learningPath;
+        setLearningPaths(prev => {
+          // Check if path already exists to avoid duplicates
+          const exists = prev.some(path => path.id === newPath.id);
+          if (!exists) {
+            // Dispatch event to update dashboard stats
+            window.dispatchEvent(new CustomEvent('userProgressUpdated'));
+            return [newPath, ...prev];
+          }
+          return prev;
+        });
+      }
+      
+      // Also refresh from server to ensure consistency
+      setTimeout(() => {
+        refreshLearningPaths().catch(console.error);
+      }, 1000);
+    };
+
+    const handleModulesGenerated = (event: CustomEvent) => {
+      console.log('Modules generated in background, refreshing learning paths...', event.detail);
+      
+      // If we have the updated learning path result, update it immediately
+      if (event.detail?.result?.learningPath) {
+        const updatedPath = event.detail.result.learningPath;
+        setLearningPaths(prev => 
+          prev.map(path => path.id === updatedPath.id ? updatedPath : path)
+        );
+        // Dispatch event to update dashboard stats
+        window.dispatchEvent(new CustomEvent('userProgressUpdated'));
+      }
+      
+      // Also refresh from server to ensure consistency
+      setTimeout(() => {
+        refreshLearningPaths().catch(console.error);
+      }, 1000);
+    };
+
+    const handleTopicsGenerated = (event: CustomEvent) => {
+      console.log('Topics generated in background, refreshing learning paths...', event.detail);
+      
+      // Refresh from server since topics are nested in modules
+      setTimeout(() => {
+        refreshLearningPaths().catch(console.error);
+      }, 1000);
+    };
+
+    // Listen for network status changes and background task completion events
     window.addEventListener('online', handleOnline);
+    window.addEventListener('learningPathCreated', handleLearningPathCreated as EventListener);
+    window.addEventListener('modulesGenerated', handleModulesGenerated as EventListener);
+    window.addEventListener('topicsGenerated', handleTopicsGenerated as EventListener);
 
     return () => {
       window.removeEventListener('online', handleOnline);
+      window.removeEventListener('learningPathCreated', handleLearningPathCreated as EventListener);
+      window.removeEventListener('modulesGenerated', handleModulesGenerated as EventListener);
+      window.removeEventListener('topicsGenerated', handleTopicsGenerated as EventListener);
     };
   }, [user?.isOnboarded]);
 

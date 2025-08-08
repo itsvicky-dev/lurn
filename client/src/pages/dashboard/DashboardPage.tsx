@@ -331,7 +331,7 @@ const DashboardPage: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Continue Learning */}
         <div className="lg:col-span-2">
-          <div className="card h">
+          <div className="card h-full">
             <div className="card-header">
               <div className="flex items-center justify-between">
                 <h3 className="card-title">Continue Learning</h3>

@@ -32,7 +32,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     }
     
     // Default to metallic-chic for the best experience
-    return 'metallic-chic';
+    return 'light';
   });
 
   useEffect(() => {

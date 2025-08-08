@@ -51,8 +51,8 @@ class ApiService {
           }
         }
         
-        // Handle network errors with retry for specific endpoints
-        if (error.code === 'ERR_NETWORK' && !originalRequest._retry) {
+        // Handle network errors and server errors with retry for specific endpoints
+        if ((error.code === 'ERR_NETWORK' || error.response?.status >= 500) && !originalRequest._retry) {
           originalRequest._retry = true;
           
           // Only retry for learning path creation and other critical operations
@@ -77,6 +77,18 @@ class ApiService {
               return this.api(originalRequest);
             } catch (retryError: any) {
               console.error('Onboarding retry also failed:', retryError);
+            }
+          }
+          
+          // Retry for leaderboard requests on server errors
+          if (originalRequest.url?.includes('/games/leaderboard') && originalRequest.method === 'get') {
+            console.log('Server error detected for leaderboard, retrying in 2 seconds...');
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            try {
+              return this.api(originalRequest);
+            } catch (retryError: any) {
+              console.error('Leaderboard retry also failed:', retryError);
             }
           }
         }
@@ -425,9 +437,34 @@ class ApiService {
     return response.data;
   }
 
-  async getGameLeaderboard(period: 'daily' | 'weekly' | 'monthly' | 'all_time' = 'weekly'): Promise<{ leaderboard: any }> {
-    const response = await this.api.get(`/games/leaderboard?period=${period}`);
+  async initGameProgress(): Promise<{ progress: any; message: string }> {
+    const response = await this.api.post('/games/init-progress');
     return response.data;
+  }
+
+  async getGameLeaderboard(period: 'daily' | 'weekly' | 'monthly' | 'all_time' = 'weekly'): Promise<{ leaderboard: any }> {
+    try {
+      const response = await this.api.get(`/games/leaderboard?period=${period}`, {
+        timeout: 10000 // 10 seconds timeout for leaderboard
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error('Leaderboard API Error:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        period: period,
+        url: `/games/leaderboard?period=${period}`
+      });
+      
+      // If it's a server error (5xx), provide more context
+      if (error.response?.status >= 500) {
+        console.error('Server error detected for leaderboard. This might be a backend issue.');
+      }
+      
+      throw error;
+    }
   }
 
   async startCodingGame(gameId: string): Promise<{ session: any }> {

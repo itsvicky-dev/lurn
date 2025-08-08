@@ -98,6 +98,11 @@ class BackgroundTaskService {
       await notificationService.notifyContentReady('learning-path', subject);
       toast.success(`✅ Learning path "${subject}" is ready!`, { duration: 6000 });
 
+      // Dispatch custom event to refresh learning paths
+      window.dispatchEvent(new CustomEvent('learningPathCreated', { 
+        detail: { subject, taskId, result } 
+      }));
+
       return taskId;
     } catch (error: any) {
       task.status = 'failed';
@@ -157,6 +162,11 @@ class BackgroundTaskService {
       await notificationService.notifyContentReady('modules', pathTitle);
       toast.success(`✅ Modules for "${pathTitle}" are ready!`, { duration: 6000 });
 
+      // Dispatch custom event to refresh learning paths
+      window.dispatchEvent(new CustomEvent('modulesGenerated', { 
+        detail: { pathTitle, taskId, result } 
+      }));
+
       return taskId;
     } catch (error: any) {
       task.status = 'failed';
@@ -214,6 +224,11 @@ class BackgroundTaskService {
 
       await notificationService.notifyContentReady('topics', moduleTitle);
       toast.success(`✅ Topics for "${moduleTitle}" are ready!`, { duration: 6000 });
+
+      // Dispatch custom event to refresh learning paths
+      window.dispatchEvent(new CustomEvent('topicsGenerated', { 
+        detail: { moduleTitle, taskId, result } 
+      }));
 
       return taskId;
     } catch (error: any) {

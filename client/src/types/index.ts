@@ -431,6 +431,8 @@ export interface GameAchievement {
 export interface GameLeaderboard {
   period: 'daily' | 'weekly' | 'monthly' | 'all_time';
   entries: GameLeaderboardEntry[];
+  lastUpdated?: string;
+  error?: string;
 }
 
 export interface GameLeaderboardEntry {

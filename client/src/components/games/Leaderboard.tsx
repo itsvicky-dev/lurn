@@ -18,6 +18,7 @@ import { useGame } from '../../contexts/GameContext';
 import { useAuth } from '../../contexts/AuthContext';
 import Button from '../ui/Button';
 import LoadingSpinner from '../ui/LoadingSpinner';
+import { logDiagnostics } from '../../utils/diagnostics';
 
 interface LeaderboardProps {
   compact?: boolean;
@@ -31,7 +32,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
   maxEntries = 50
 }) => {
   const { user } = useAuth();
-  const { leaderboard, loading, loadLeaderboard } = useGame();
+  const { leaderboard, loading, loadLeaderboard, retryLeaderboard } = useGame();
   const [selectedPeriod, setSelectedPeriod] = useState<'daily' | 'weekly' | 'monthly' | 'all_time'>('weekly');
   const [showFilters, setShowFilters] = useState(false);
 
@@ -87,6 +88,47 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
     return (
       <div className="flex items-center justify-center h-64">
         <LoadingSpinner size="lg" text="Loading leaderboard..." />
+      </div>
+    );
+  }
+
+  // Show empty state if leaderboard exists but has no entries
+  if (leaderboard && leaderboard.entries.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-center">
+        <Trophy className="h-16 w-16 text-muted-foreground mb-4" />
+        <h3 className="text-lg font-semibold text-foreground mb-2">
+          {leaderboard.error ? 'Leaderboard Unavailable' : 'No Rankings Yet'}
+        </h3>
+        <p className="text-muted-foreground mb-4">
+          {leaderboard.error 
+            ? 'There was an issue loading the leaderboard. Please try again.'
+            : 'Be the first to complete a coding game and claim the top spot!'
+          }
+        </p>
+        {leaderboard.error && (
+          <p className="text-sm text-red-600 mb-4 max-w-md">
+            {leaderboard.error}
+          </p>
+        )}
+        <div className="flex space-x-2">
+          <Button
+            onClick={retryLeaderboard}
+            variant="outline"
+            size="sm"
+          >
+            {leaderboard.error ? 'Retry' : 'Refresh Leaderboard'}
+          </Button>
+          {process.env.NODE_ENV === 'development' && (
+            <Button
+              onClick={logDiagnostics}
+              variant="outline"
+              size="sm"
+            >
+              Run Diagnostics
+            </Button>
+          )}
+        </div>
       </div>
     );
   }

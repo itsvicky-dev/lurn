@@ -259,6 +259,8 @@ router.get('/leaderboard', authenticate, async (req, res) => {
   try {
     const { period = 'weekly' } = req.query;
     
+    console.log(`Fetching leaderboard for period: ${period}`);
+    
     let sortField = 'totalPoints';
     let gamesField = 'totalGamesCompleted';
     
@@ -283,30 +285,132 @@ router.get('/leaderboard', authenticate, async (req, res) => {
         break;
     }
     
-    const leaderboardData = await GameProgress.find({})
-      .populate('userId', 'firstName lastName avatar')
-      .sort({ [sortField]: -1 })
-      .limit(50);
+    console.log(`Using sort field: ${sortField}, games field: ${gamesField}`);
     
-    const entries = leaderboardData.map((progress, index) => ({
+    // First, check if there are any GameProgress records
+    const totalRecords = await GameProgress.countDocuments();
+    console.log(`Total GameProgress records: ${totalRecords}`);
+    
+    if (totalRecords === 0) {
+      console.log('No GameProgress records found, returning empty leaderboard');
+      return res.json({
+        leaderboard: {
+          period,
+          entries: [],
+          lastUpdated: new Date().toISOString()
+        }
+      });
+    }
+    
+    // Build query with minimum score filter to avoid showing users with 0 points
+    const query = {};
+    if (sortField !== 'totalPoints') {
+      query[sortField] = { $gt: 0 };
+    } else {
+      query.totalPoints = { $gt: 0 };
+    }
+    
+    console.log('Query filter:', query);
+    
+    let leaderboardData;
+    try {
+      leaderboardData = await GameProgress.find(query)
+        .populate('userId', 'firstName lastName avatar')
+        .sort({ [sortField]: -1 })
+        .limit(50)
+        .lean(); // Use lean() for better performance
+    } catch (populateError) {
+      console.error('Error during populate operation:', populateError);
+      
+      // Fallback: try without populate to see if that's the issue
+      try {
+        console.log('Attempting fallback query without populate...');
+        const rawData = await GameProgress.find(query)
+          .sort({ [sortField]: -1 })
+          .limit(50)
+          .lean();
+        
+        console.log(`Fallback query successful: ${rawData.length} records`);
+        
+        // Manually populate user data
+        const User = (await import('../models/User.js')).default;
+        leaderboardData = [];
+        
+        for (const progress of rawData) {
+          try {
+            const user = await User.findById(progress.userId, 'firstName lastName avatar').lean();
+            if (user) {
+              leaderboardData.push({
+                ...progress,
+                userId: user
+              });
+            } else {
+              console.warn(`User not found for GameProgress ${progress._id}, userId: ${progress.userId}`);
+            }
+          } catch (userError) {
+            console.error(`Error fetching user ${progress.userId}:`, userError.message);
+          }
+        }
+        
+        console.log(`Manual populate completed: ${leaderboardData.length} valid entries`);
+      } catch (fallbackError) {
+        console.error('Fallback query also failed:', fallbackError);
+        throw populateError; // Re-throw original error
+      }
+    }
+    
+    console.log(`Found ${leaderboardData.length} leaderboard entries`);
+    
+    // Filter out entries where userId population failed
+    const validEntries = leaderboardData.filter(progress => {
+      if (!progress.userId) {
+        console.warn(`GameProgress record ${progress._id} has invalid userId reference`);
+        return false;
+      }
+      return true;
+    });
+    
+    console.log(`Valid entries after filtering: ${validEntries.length}`);
+    
+    const entries = validEntries.map((progress, index) => ({
       rank: index + 1,
       userId: progress.userId._id,
       userName: `${progress.userId.firstName} ${progress.userId.lastName}`,
       avatar: progress.userId.avatar,
-      score: progress[sortField],
-      gamesCompleted: progress[gamesField],
+      score: progress[sortField] || 0,
+      gamesCompleted: progress[gamesField] || 0,
       averageTime: 0 // TODO: Calculate average completion time
     }));
     
     const leaderboard = {
       period,
-      entries
+      entries,
+      lastUpdated: new Date().toISOString()
     };
     
-    res.json({ leaderboard });
+    console.log(`Returning leaderboard with ${entries.length} entries`);
+    
+    // Ensure we always return a valid leaderboard structure
+    const finalLeaderboard = {
+      period,
+      entries: entries || [],
+      lastUpdated: new Date().toISOString()
+    };
+    
+    res.json({ leaderboard: finalLeaderboard });
   } catch (error) {
     console.error('Error fetching leaderboard:', error);
-    res.status(500).json({ message: 'Failed to fetch leaderboard' });
+    console.error('Error stack:', error.stack);
+    
+    // Return empty leaderboard instead of error to prevent frontend crashes
+    res.json({
+      leaderboard: {
+        period: req.query.period || 'weekly',
+        entries: [],
+        lastUpdated: new Date().toISOString(),
+        error: 'Failed to load leaderboard data'
+      }
+    });
   }
 });
 
@@ -327,6 +431,62 @@ router.get('/sessions', authenticate, async (req, res) => {
   } catch (error) {
     console.error('Error fetching game sessions:', error);
     res.status(500).json({ message: 'Failed to fetch game sessions' });
+  }
+});
+
+// Health check endpoint for games service
+router.get('/health', authenticate, async (req, res) => {
+  try {
+    const gameCount = await CodingGame.countDocuments();
+    const progressCount = await GameProgress.countDocuments();
+    const sessionCount = await GameSession.countDocuments();
+    
+    // Check if current user has GameProgress
+    const userProgress = await GameProgress.findOne({ userId: req.user.id });
+    
+    res.json({
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      stats: {
+        totalGames: gameCount,
+        totalProgressRecords: progressCount,
+        totalSessions: sessionCount,
+        userHasProgress: !!userProgress
+      }
+    });
+  } catch (error) {
+    console.error('Games health check failed:', error);
+    res.status(500).json({
+      status: 'unhealthy',
+      timestamp: new Date().toISOString(),
+      error: error.message
+    });
+  }
+});
+
+// Initialize GameProgress for current user
+router.post('/init-progress', authenticate, async (req, res) => {
+  try {
+    let progress = await GameProgress.findOne({ userId: req.user.id });
+    
+    if (!progress) {
+      progress = new GameProgress({ userId: req.user.id });
+      await progress.save();
+      console.log(`Created GameProgress for user ${req.user.id}`);
+    }
+    
+    res.json({ 
+      message: 'GameProgress initialized',
+      progress: {
+        totalPoints: progress.totalPoints,
+        totalGamesCompleted: progress.totalGamesCompleted,
+        weeklyPoints: progress.weeklyPoints,
+        monthlyPoints: progress.monthlyPoints
+      }
+    });
+  } catch (error) {
+    console.error('Error initializing GameProgress:', error);
+    res.status(500).json({ message: 'Failed to initialize GameProgress' });
   }
 });
 

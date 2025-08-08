@@ -25,6 +25,7 @@ interface GameContextType {
   // Progress and stats
   loadGameProgress: () => Promise<void>;
   loadLeaderboard: (period?: 'daily' | 'weekly' | 'monthly' | 'all_time') => Promise<void>;
+  retryLeaderboard: () => Promise<void>;
   
   // Session management
   setCurrentGame: (game: CodingGame | null) => void;
@@ -72,6 +73,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
   const [leaderboard, setLeaderboard] = useState<GameLeaderboard | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
+  const [currentLeaderboardPeriod, setCurrentLeaderboardPeriod] = useState<'daily' | 'weekly' | 'monthly' | 'all_time'>('weekly');
 
   const loadGames = async (filters?: GameFilters) => {
     if (!user?.isOnboarded) return;
@@ -195,17 +197,64 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
       setGameProgress(progress);
     } catch (error: any) {
       console.error('Failed to load game progress:', error);
+      
+      // If progress doesn't exist, try to initialize it
+      if (error.response?.status === 404 || error.message.includes('not found')) {
+        try {
+          console.log('Attempting to initialize GameProgress...');
+          await apiService.initGameProgress();
+          // Retry loading progress
+          const { progress } = await apiService.getGameProgress();
+          setGameProgress(progress);
+          console.log('GameProgress initialized successfully');
+        } catch (initError: any) {
+          console.error('Failed to initialize game progress:', initError);
+        }
+      }
     }
   };
 
-  const loadLeaderboard = async (period: 'daily' | 'weekly' | 'monthly' | 'all_time' = 'weekly') => {
+  const loadLeaderboard = async (period: 'daily' | 'weekly' | 'monthly' | 'all_time' = 'weekly', retryCount = 0) => {
     try {
+      setCurrentLeaderboardPeriod(period);
       const { leaderboard } = await apiService.getGameLeaderboard(period);
       setLeaderboard(leaderboard);
     } catch (error: any) {
       console.error('Failed to load leaderboard:', error);
-      toast.error('Failed to load leaderboard');
+      
+      // If it's a server error and we haven't retried yet, try once more
+      if (error.response?.status >= 500 && retryCount === 0) {
+        console.log('Retrying leaderboard load due to server error...');
+        setTimeout(() => {
+          loadLeaderboard(period, 1);
+        }, 2000); // Retry after 2 seconds
+        return;
+      }
+      
+      // Provide more specific error messages
+      let errorMessage = 'Failed to load leaderboard';
+      if (error.response?.status >= 500) {
+        errorMessage = 'Server error loading leaderboard. Please try again later.';
+      } else if (error.code === 'ERR_NETWORK') {
+        errorMessage = 'Network error loading leaderboard. Check your connection.';
+      } else if (error.code === 'ECONNABORTED') {
+        errorMessage = 'Leaderboard request timed out. Please try again.';
+      }
+      
+      toast.error(errorMessage);
+      
+      // Set empty leaderboard to prevent UI issues
+      setLeaderboard({ 
+        entries: [], 
+        period, 
+        lastUpdated: new Date().toISOString(),
+        error: errorMessage 
+      });
     }
+  };
+
+  const retryLeaderboard = async () => {
+    await loadLeaderboard(currentLeaderboardPeriod);
   };
 
   const generateGame = async (gameParams: GameGenerationParams): Promise<CodingGame> => {
@@ -255,6 +304,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     generateGame,
     loadGameProgress,
     loadLeaderboard,
+    retryLeaderboard,
     setCurrentGame,
     setCurrentSession,
   };

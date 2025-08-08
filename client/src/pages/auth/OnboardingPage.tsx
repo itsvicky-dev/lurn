@@ -53,6 +53,7 @@ const OnboardingPage: React.FC = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<OnboardingRequest & { 
     customSubject: string; 
     userPreferences: string; 
@@ -125,6 +126,8 @@ const OnboardingPage: React.FC = () => {
       return;
     }
 
+    setIsSubmitting(true);
+
     try {
       // Prepare the onboarding data with custom subject included
       const onboardingData: OnboardingRequest = {
@@ -143,26 +146,31 @@ const OnboardingPage: React.FC = () => {
       // Request notification permission for background tasks (non-blocking)
       notificationService.requestPermission().catch(console.warn);
       
-      // Start background learning path creation for each subject (non-blocking)
-      const backgroundTasks = [];
+      // Queue learning path creation for each subject (don't wait for completion)
+      const queuedTasks = [];
       for (const subject of subjects) {
         try {
-          const taskId = await backgroundTaskService.createLearningPathInBackground(
+          // Queue the task without waiting for it to complete
+          backgroundTaskService.createLearningPathInBackground(
             subject, 
             onboardingData,
             'onboarding'
-          );
-          backgroundTasks.push(taskId);
+          ).then((taskId) => {
+            console.log(`Learning path queued for ${subject} with task ID: ${taskId}`);
+          }).catch((error) => {
+            console.error(`Failed to create learning path for ${subject}:`, error);
+          });
+          queuedTasks.push(subject);
         } catch (error) {
-          console.error(`Failed to start background task for ${subject}:`, error);
+          console.error(`Failed to queue background task for ${subject}:`, error);
         }
       }
       
       // Show success messages
       toast.success('🎉 Welcome to Lurn! Your account is set up.');
       
-      if (backgroundTasks.length > 0) {
-        toast(`🚀 ${backgroundTasks.length} learning path${backgroundTasks.length > 1 ? 's' : ''} queued for creation. You'll be notified when they're ready!`, {
+      if (queuedTasks.length > 0) {
+        toast(`🚀 ${queuedTasks.length} learning path${queuedTasks.length > 1 ? 's' : ''} queued for creation. You'll be notified when they're ready!`, {
           icon: '📋',
           duration: 5000,
         });
@@ -174,6 +182,8 @@ const OnboardingPage: React.FC = () => {
     } catch (error: any) {
       console.error('Onboarding error:', error);
       toast.error(error.response?.data?.message || 'Failed to complete onboarding. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -461,10 +471,17 @@ const OnboardingPage: React.FC = () => {
             <button
               type="button"
               onClick={handleSubmit}
-              disabled={!canProceed()}
+              disabled={!canProceed() || isSubmitting}
               className="btn-primary btn-lg flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <span>Complete Setup</span>
+              {isSubmitting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span>Setting up...</span>
+                </>
+              ) : (
+                <span>Complete Setup</span>
+              )}
             </button>
           )}
         </div>

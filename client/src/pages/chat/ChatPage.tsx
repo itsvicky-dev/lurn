@@ -185,7 +185,7 @@ const ChatPage: React.FC = () => {
       <div className="w-80 border-r border-border flex flex-col bg-card">
         {/* Header */}
         <div className="p-4 border-b border-border">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-1">
             <h1 className="text-xl font-semibold text-card-foreground font-robotic">AI Chat</h1>
             <div className="flex space-x-2">
               {(currentTopic || currentModule || currentPath) && (

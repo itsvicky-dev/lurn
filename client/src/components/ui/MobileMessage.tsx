@@ -1,7 +1,9 @@
 import React from 'react';
 import { Monitor, Smartphone } from 'lucide-react';
+import { useMobileDetection } from '../../hooks/useMobileDetection';
 
 const MobileMessage: React.FC = () => {
+  const { enableDesktopView } = useMobileDetection();
   return (
     <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-6">
       <div className="max-w-md w-full text-center space-y-6">
@@ -46,6 +48,25 @@ const MobileMessage: React.FC = () => {
                 The app will automatically detect when desktop mode is enabled
               </p>
             </div>
+          </div>
+
+          {/* Manual Override Button */}
+          <div className="pt-4">
+            <button
+              onClick={enableDesktopView}
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-3 px-4 rounded-lg font-medium transition-colors"
+            >
+              Force Desktop View
+            </button>
+            <p className="text-xs text-muted-foreground text-center mt-2">
+              Use this if auto-detection isn't working
+            </p>
+          </div>
+
+          {/* Debug Info */}
+          <div className="pt-4 text-xs text-muted-foreground">
+            <p><strong>Screen:</strong> {window.innerWidth} × {window.innerHeight}</p>
+            <p><strong>Ratio:</strong> {(window.innerWidth / window.innerHeight).toFixed(2)}</p>
           </div>
         </div>
 

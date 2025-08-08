@@ -24,19 +24,29 @@ const detectDesktopMode = (): boolean => {
   }
   
   // For mobile devices, detect desktop mode by viewport dimensions
-  // Desktop mode typically results in:
-  // 1. Much wider viewport (> 1024px)
-  // 2. Aspect ratio closer to desktop (width significantly larger than height)
+  // Desktop mode typically results in wider viewport
   const aspectRatio = width / height;
   
-  // Desktop mode indicators:
-  // - Width > 1024px (typical desktop breakpoint)
-  // - Aspect ratio > 1.3 (landscape and wide)
-  // - OR width > 1200px (definitely desktop mode regardless of ratio)
-  return (
-    (width > 1024 && aspectRatio > 1.3) || 
-    width > 1200
-  );
+  // Very aggressive desktop mode detection for mobile devices:
+  // If it's a mobile device and has any of these characteristics, consider it desktop mode:
+  // 1. Width >= 768px (most common desktop mode width)
+  // 2. OR width > 640px AND aspect ratio > 1.1 (landscape with decent width)
+  // 3. OR width > 480px AND aspect ratio > 1.5 (very wide landscape)
+  const isDesktopMode = width >= 768 || 
+                       (width > 640 && aspectRatio > 1.1) ||
+                       (width > 480 && aspectRatio > 1.5);
+  
+  // Enhanced logging for debugging
+  console.log('Desktop Mode Detection:', {
+    width,
+    height,
+    aspectRatio: aspectRatio.toFixed(2),
+    isMobileDevice,
+    isDesktopMode,
+    userAgent: userAgent.substring(0, 50)
+  });
+  
+  return isDesktopMode;
 };
 
 export const useMobileDetection = (): MobileDetectionResult => {
@@ -68,7 +78,7 @@ export const useMobileDetection = (): MobileDetectionResult => {
     );
     
     // Check screen width (use a more conservative breakpoint)
-    const isSmallScreen = window.innerWidth <= 1024;
+    const isSmallScreen = window.innerWidth <= 768;
     
     return isMobileDevice || isSmallScreen;
   });
@@ -86,7 +96,7 @@ export const useMobileDetection = (): MobileDetectionResult => {
       );
       
       // Update mobile detection based on device and screen size
-      const isSmallScreen = window.innerWidth <= 1024;
+      const isSmallScreen = window.innerWidth <= 768;
       setIsMobile(isMobileDevice || isSmallScreen);
       
       // Update desktop view detection

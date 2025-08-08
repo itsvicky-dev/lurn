@@ -404,4 +404,147 @@ router.post('/coding-exercises', authenticate, requireOnboarding, async (req, re
   }
 });
 
+// Get AI service model statistics (for debugging and monitoring)
+router.get('/model-stats', authenticate, async (req, res) => {
+  try {
+    // Only allow admin users or in development mode
+    if (process.env.NODE_ENV !== 'development' && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    const stats = aiService.getModelStats();
+    const serviceHealth = await aiService.checkServiceHealth();
+    
+    res.json({
+      ...stats,
+      serviceHealth,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Get model stats error:', error);
+    res.status(500).json({ message: 'Server error getting model statistics' });
+  }
+});
+
+// Force reset rate limits (for debugging)
+router.post('/reset-rate-limits', authenticate, async (req, res) => {
+  try {
+    // Only allow admin users or in development mode
+    if (process.env.NODE_ENV !== 'development' && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    // Clear all rate limited models
+    aiService.rateLimitedModels.clear();
+    
+    // Reset success rates to default
+    aiService.modelPool.forEach(modelInfo => {
+      modelInfo.successRate = 1.0;
+    });
+    
+    // Clear model stats
+    aiService.modelStats.clear();
+    
+    // Reset API key rate limits
+    const clearedApiKeys = aiService.apiKeyManager.resetRateLimits();
+    
+    console.log('🔄 Rate limits and model stats reset by admin');
+    
+    res.json({ 
+      message: 'Rate limits and model statistics reset successfully',
+      clearedApiKeys,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Reset rate limits error:', error);
+    res.status(500).json({ message: 'Server error resetting rate limits' });
+  }
+});
+
+// Add new API key dynamically
+router.post('/add-api-key', authenticate, async (req, res) => {
+  try {
+    // Only allow admin users or in development mode
+    if (process.env.NODE_ENV !== 'development' && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    const { apiKey } = req.body;
+    
+    if (!apiKey || !apiKey.startsWith('sk-or-v1-')) {
+      return res.status(400).json({ message: 'Invalid OpenRouter API key format' });
+    }
+
+    const added = aiService.apiKeyManager.addApiKey(apiKey);
+    
+    if (added) {
+      console.log('➕ New API key added by admin');
+      res.json({ 
+        message: 'API key added successfully',
+        totalKeys: aiService.apiKeyManager.apiKeys.length,
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      res.status(400).json({ message: 'API key already exists or is invalid' });
+    }
+  } catch (error) {
+    console.error('Add API key error:', error);
+    res.status(500).json({ message: 'Server error adding API key' });
+  }
+});
+
+// Get API key statistics
+router.get('/api-key-stats', authenticate, async (req, res) => {
+  try {
+    // Only allow admin users or in development mode
+    if (process.env.NODE_ENV !== 'development' && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    const stats = aiService.apiKeyManager.getKeyStats();
+    
+    res.json({
+      ...stats,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Get API key stats error:', error);
+    res.status(500).json({ message: 'Server error getting API key statistics' });
+  }
+});
+
+// Switch to next available API key manually
+router.post('/switch-api-key', authenticate, async (req, res) => {
+  try {
+    // Only allow admin users or in development mode
+    if (process.env.NODE_ENV !== 'development' && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    const oldKey = aiService.apiKeyManager.getKeyId(aiService.currentApiKey);
+    const newKey = aiService.apiKeyManager.switchToNextKey();
+    
+    if (newKey) {
+      aiService.updateHttpClient();
+      console.log('🔄 API key switched manually by admin');
+      
+      res.json({ 
+        message: 'API key switched successfully',
+        oldKey,
+        newKey: aiService.apiKeyManager.getKeyId(newKey),
+        availableKeys: aiService.apiKeyManager.getAvailableKeysCount(),
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      res.status(400).json({ 
+        message: 'No alternative API keys available',
+        currentKey: oldKey
+      });
+    }
+  } catch (error) {
+    console.error('Switch API key error:', error);
+    res.status(500).json({ message: 'Server error switching API key' });
+  }
+});
+
 export default router;

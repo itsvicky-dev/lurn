@@ -3,6 +3,7 @@ import axios from 'axios';
 import { FREE_MODELS, RECOMMENDED_FREE_MODEL, getRandomFreeModel, getModelInfo } from '../config/freeModels.js';
 import mediaService from './mediaService.js';
 import contentFilterService from './contentFilterService.js';
+import apiKeyManager from './apiKeyManager.js';
 
 // Load environment variables
 dotenv.config();
@@ -42,38 +43,67 @@ class AIService {
   }
 
   constructor() {
-    this.apiKey = process.env.OPENROUTER_API_KEY;
+    // Use API Key Manager for multiple key rotation
+    this.apiKeyManager = apiKeyManager;
     this.baseURL = process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1';
-    // Using free models from OpenRouter
-    this.defaultModel = process.env.OPENROUTER_MODEL || RECOMMENDED_FREE_MODEL;
-    this.fallbackModels = [
-      FREE_MODELS.QWEN3_14B,        // Try Qwen first - better for structured output
-      FREE_MODELS.DEEPSEEK_V3,      // Then DeepSeek V3 - more stable than R1
-      FREE_MODELS.LLAMA_4_SCOUT,    // Meta's latest model
-      FREE_MODELS.QWEN3_4B,         // Smaller but faster
-      FREE_MODELS.DEEPSEEK_R1       // R1 last due to reasoning format issues
+    
+    // Enhanced model rotation strategy with verified available models (Jan 2025)
+    this.modelPool = [
+      { model: FREE_MODELS.OPENAI_GPT_OSS_20B, priority: 1, successRate: 1.0 },    // Latest OpenAI free model
+      { model: FREE_MODELS.GLM_4_5_AIR, priority: 2, successRate: 1.0 },           // Z.AI efficient model (corrected ID)
+      { model: FREE_MODELS.MISTRAL_SMALL_3_2, priority: 3, successRate: 1.0 },     // Latest Mistral
+      { model: FREE_MODELS.QWEN3_CODER, priority: 4, successRate: 1.0 },           // Great for coding tasks
+      { model: FREE_MODELS.GEMMA_3_12B, priority: 5, successRate: 1.0 },           // Google Gemma 3
+      { model: FREE_MODELS.KIMI_K2, priority: 6, successRate: 1.0 },               // MoonshotAI
+      { model: FREE_MODELS.QWEN3_8B, priority: 7, successRate: 1.0 },              // Newer Qwen 8B
+      { model: FREE_MODELS.LLAMA_3_2_3B, priority: 8, successRate: 1.0 },          // Fast Meta model
+      { model: FREE_MODELS.REKA_FLASH_3, priority: 9, successRate: 1.0 },          // Reka model
+      { model: FREE_MODELS.HUNYUAN_A13B, priority: 10, successRate: 1.0 },         // Tencent model
+      { model: FREE_MODELS.QWEN3_14B, priority: 11, successRate: 1.0 },            // Fallback to older Qwen
+      { model: FREE_MODELS.DEEPSEEK_V3, priority: 12, successRate: 1.0 }           // DeepSeek as last resort
     ];
     
-    // Rate limit tracking
+    // Use environment model as preferred, but not exclusive
+    this.preferredModel = process.env.OPENROUTER_MODEL || RECOMMENDED_FREE_MODEL;
+    
+    // Enhanced rate limit tracking with different timeouts per model
     this.rateLimitedModels = new Map(); // Track which models are rate limited and when
+    this.modelStats = new Map(); // Track success/failure rates
+    this.lastUsedModel = null;
+    this.modelRotationIndex = 0;
+    
+    // Get current API key from manager
+    this.currentApiKey = this.apiKeyManager.getCurrentKey();
     
     // Validate API key
-    if (!this.apiKey) {
-      console.error('OPENROUTER_API_KEY is not set in environment variables');
+    if (!this.currentApiKey) {
+      console.error('No API keys configured in environment variables');
       console.error('Available env vars:', Object.keys(process.env).filter(key => key.includes('OPENROUTER')));
-      throw new Error('AI service not configured: Missing API key');
+      throw new Error('AI service not configured: No API keys available');
     }
     
-    console.log('AI Service initialized with API key:', this.apiKey ? `${this.apiKey.substring(0, 10)}...` : 'NOT SET');
+    console.log('AI Service initialized with API key manager');
+    console.log('Current API key:', this.apiKeyManager.getKeyId(this.currentApiKey));
+    console.log('Total API keys available:', this.apiKeyManager.apiKeys.length);
+    
+    // Initialize HTTP client (will be updated dynamically)
+    this.updateHttpClient();
     
     // Check API key status on initialization
     this.checkApiKeyStatus();
+  }
+
+  /**
+   * Update HTTP client with current API key
+   */
+  updateHttpClient() {
+    this.currentApiKey = this.apiKeyManager.getCurrentKey();
     
     this.client = axios.create({
       baseURL: this.baseURL,
-      timeout: 300000, // 5 minutes timeout for AI content generation (increased for complex learning paths)
+      timeout: 300000, // 5 minutes timeout for AI content generation
       headers: {
-        'Authorization': `Bearer ${this.apiKey}`,
+        'Authorization': `Bearer ${this.currentApiKey}`,
         'Content-Type': 'application/json',
         'HTTP-Referer': 'http://localhost:3001',
         'X-Title': 'AI Tutor'
@@ -104,30 +134,38 @@ class AIService {
       throw new Error('Messages array is required and cannot be empty');
     }
 
-    const modelToUse = options.model || this.defaultModel;
+    // Use smart model selection instead of fixed model
+    const modelToUse = options.model || this.selectBestAvailableModel();
     
     try {
-      return await this._attemptCompletion(messages, modelToUse, options);
+      const result = await this._attemptCompletion(messages, modelToUse, options);
+      this.recordModelSuccess(modelToUse);
+      return result;
     } catch (error) {
-      // If rate limited, model unavailable, or invalid model ID, try fallback models
+      this.recordModelFailure(modelToUse, error);
+      
+      // If rate limited, model unavailable, or invalid model ID, try other models
       if (error.response?.status === 429 || error.response?.status === 503 || error.response?.status === 400) {
-        console.log(`Model ${modelToUse} failed (${error.response?.status}), trying fallback models...`);
+        console.log(`Model ${modelToUse} failed (${error.response?.status}), trying alternative models...`);
         
-        for (const fallbackModel of this.fallbackModels) {
-          if (fallbackModel !== modelToUse) {
-            // Skip models that are known to be rate limited
-            if (this.isModelRateLimited(fallbackModel)) {
-              console.log(`Skipping ${fallbackModel} - recently rate limited`);
-              continue;
-            }
-            
-            try {
-              console.log(`Trying fallback model: ${fallbackModel}`);
-              return await this._attemptCompletion(messages, fallbackModel, options);
-            } catch (fallbackError) {
-              console.log(`Fallback model ${fallbackModel} also failed:`, fallbackError.message);
-              continue;
-            }
+        const alternativeModels = this.getAlternativeModels(modelToUse);
+        
+        for (const alternativeModel of alternativeModels) {
+          // Skip models that are known to be rate limited
+          if (this.isModelRateLimited(alternativeModel)) {
+            console.log(`Skipping ${alternativeModel} - recently rate limited`);
+            continue;
+          }
+          
+          try {
+            console.log(`Trying alternative model: ${alternativeModel}`);
+            const result = await this._attemptCompletion(messages, alternativeModel, options);
+            this.recordModelSuccess(alternativeModel);
+            return result;
+          } catch (fallbackError) {
+            this.recordModelFailure(alternativeModel, fallbackError);
+            console.log(`Alternative model ${alternativeModel} also failed:`, fallbackError.message);
+            continue;
           }
         }
         
@@ -143,9 +181,11 @@ Possible solutions:
 3. Add credits to your OpenRouter account for more reliable access
 4. Use a different OpenRouter API key if you have one
 
-Models attempted: ${[modelToUse, ...this.fallbackModels.filter(m => m !== modelToUse)].join(', ')}
+Models attempted: ${[modelToUse, ...alternativeModels].join(', ')}
 Currently rate limited: ${rateLimitedModels.length > 0 ? rateLimitedModels.join(', ') : 'None tracked'}
-Available models: ${availableModels.length > 0 ? availableModels.join(', ') : 'None currently available'}`;
+Available models: ${availableModels.length > 0 ? availableModels.join(', ') : 'None currently available'}
+
+The system will automatically retry with different models as they become available.`;
         
         throw new Error(rateLimitMessage);
       }
@@ -204,6 +244,9 @@ Available models: ${availableModels.length > 0 ? availableModels.join(', ') : 'N
         throw new Error('Invalid response format from AI service: No content in message');
       }
 
+      // Record successful API key usage
+      this.apiKeyManager.recordSuccess(this.currentApiKey);
+      
       return {
         content: content,
         usage: response.data.usage,
@@ -234,12 +277,21 @@ Available models: ${availableModels.length > 0 ? availableModels.join(', ') : 'N
         // Track rate limited model
         this.markModelAsRateLimited(model);
         
-        if (errorData?.error?.message?.includes('quota')) {
-          throw new Error(`Daily quota exceeded for free models. Please try again tomorrow or upgrade your OpenRouter account.`);
-        } else if (errorData?.error?.message?.includes('rate limit')) {
-          throw new Error(`Rate limit exceeded (20 requests/minute for free models). Please wait a minute and try again.`);
+        // Also mark the current API key as rate limited
+        this.apiKeyManager.recordFailure(this.currentApiKey, error);
+        
+        // Try to switch to a different API key
+        const nextKey = this.apiKeyManager.switchToNextKey();
+        if (nextKey && nextKey !== this.currentApiKey) {
+          console.log(`🔄 Switching API key due to rate limit`);
+          this.updateHttpClient();
+          
+          // Retry with the new API key (but still throw error to trigger model fallback)
+          console.log(`🔄 Will retry with different API key: ${this.apiKeyManager.getKeyId(this.currentApiKey)}`);
         }
-        throw new Error(`Model ${model} rate limit exceeded: ${errorData?.error?.message || 'Unknown rate limit error'}`);
+        
+        // Re-throw the error so the generateCompletion method can handle fallbacks
+        throw error;
       } else if (error.response?.status === 503) {
         throw new Error(`Model ${model} is temporarily unavailable`);
       } else if (error.response?.status >= 500) {
@@ -1161,9 +1213,16 @@ Format your response with clear sections and specific examples.`;
     const rateLimitTime = this.rateLimitedModels.get(model);
     if (!rateLimitTime) return false;
     
-    // Consider model available again after 10 minutes
-    const tenMinutes = 10 * 60 * 1000;
-    const isStillLimited = (Date.now() - rateLimitTime) < tenMinutes;
+    // Different timeout strategies based on model and error type
+    let timeoutMinutes = 5; // Default 5 minutes for faster recovery
+    
+    // DeepSeek models might have longer rate limits
+    if (model.includes('deepseek')) {
+      timeoutMinutes = 15; // 15 minutes for DeepSeek models
+    }
+    
+    const timeoutMs = timeoutMinutes * 60 * 1000;
+    const isStillLimited = (Date.now() - rateLimitTime) < timeoutMs;
     
     if (!isStillLimited) {
       this.rateLimitedModels.delete(model);
@@ -1174,8 +1233,134 @@ Format your response with clear sections and specific examples.`;
   }
 
   getAvailableModels() {
-    const allModels = [this.defaultModel, ...this.fallbackModels];
-    return allModels.filter(model => !this.isModelRateLimited(model));
+    return this.modelPool
+      .filter(modelInfo => !this.isModelRateLimited(modelInfo.model))
+      .map(modelInfo => modelInfo.model);
+  }
+
+  // Enhanced model selection with rotation and success rate consideration
+  selectBestAvailableModel() {
+    // First, try the preferred model if it's available
+    if (this.preferredModel && !this.isModelRateLimited(this.preferredModel)) {
+      return this.preferredModel;
+    }
+
+    // Get available models sorted by priority and success rate
+    const availableModels = this.modelPool
+      .filter(modelInfo => !this.isModelRateLimited(modelInfo.model))
+      .sort((a, b) => {
+        // Sort by success rate first, then by priority
+        if (Math.abs(a.successRate - b.successRate) > 0.1) {
+          return b.successRate - a.successRate; // Higher success rate first
+        }
+        return a.priority - b.priority; // Lower priority number = higher priority
+      });
+
+    if (availableModels.length === 0) {
+      // If all models are rate limited, try the one that was rate limited longest ago
+      const leastRecentlyLimited = Array.from(this.rateLimitedModels.entries())
+        .sort((a, b) => a[1] - b[1])[0]; // Sort by timestamp, oldest first
+      
+      if (leastRecentlyLimited) {
+        console.log(`⚠️ All models rate limited, trying least recently limited: ${leastRecentlyLimited[0]}`);
+        return leastRecentlyLimited[0];
+      }
+      
+      // Fallback to default model
+      return this.preferredModel || FREE_MODELS.QWEN3_14B;
+    }
+
+    // Use round-robin among top models to distribute load
+    const topModels = availableModels.filter(m => m.successRate >= 0.8);
+    if (topModels.length > 1) {
+      const selectedModel = topModels[this.modelRotationIndex % topModels.length];
+      this.modelRotationIndex++;
+      console.log(`🔄 Round-robin selected: ${selectedModel.model} (success rate: ${selectedModel.successRate.toFixed(2)})`);
+      return selectedModel.model;
+    }
+
+    // Return the best available model
+    const bestModel = availableModels[0];
+    console.log(`🎯 Best available model: ${bestModel.model} (success rate: ${bestModel.successRate.toFixed(2)})`);
+    return bestModel.model;
+  }
+
+  // Get alternative models excluding the failed one
+  getAlternativeModels(excludeModel) {
+    return this.modelPool
+      .filter(modelInfo => modelInfo.model !== excludeModel)
+      .sort((a, b) => {
+        // Sort by success rate first, then by priority
+        if (Math.abs(a.successRate - b.successRate) > 0.1) {
+          return b.successRate - a.successRate;
+        }
+        return a.priority - b.priority;
+      })
+      .map(modelInfo => modelInfo.model);
+  }
+
+  // Record successful model usage
+  recordModelSuccess(model) {
+    const modelInfo = this.modelPool.find(m => m.model === model);
+    if (modelInfo) {
+      // Increase success rate gradually
+      modelInfo.successRate = Math.min(1.0, modelInfo.successRate + 0.1);
+    }
+    
+    // Update stats
+    const stats = this.modelStats.get(model) || { successes: 0, failures: 0 };
+    stats.successes++;
+    this.modelStats.set(model, stats);
+    
+    this.lastUsedModel = model;
+    console.log(`✅ Model ${model} succeeded (success rate: ${modelInfo?.successRate.toFixed(2) || 'unknown'})`);
+  }
+
+  // Record failed model usage
+  recordModelFailure(model, error) {
+    const modelInfo = this.modelPool.find(m => m.model === model);
+    if (modelInfo) {
+      // Decrease success rate based on error type
+      const penalty = error.response?.status === 429 ? 0.3 : 0.1; // Larger penalty for rate limits
+      modelInfo.successRate = Math.max(0.0, modelInfo.successRate - penalty);
+    }
+    
+    // Update stats
+    const stats = this.modelStats.get(model) || { successes: 0, failures: 0 };
+    stats.failures++;
+    this.modelStats.set(model, stats);
+    
+    console.log(`❌ Model ${model} failed (success rate: ${modelInfo?.successRate.toFixed(2) || 'unknown'})`);
+  }
+
+  // Get model statistics for debugging
+  getModelStats() {
+    return {
+      // Model statistics
+      modelPool: this.modelPool.map(m => ({
+        model: m.model,
+        priority: m.priority,
+        successRate: m.successRate,
+        isRateLimited: this.isModelRateLimited(m.model)
+      })),
+      rateLimitedModels: Array.from(this.rateLimitedModels.entries()).map(([model, time]) => ({
+        model,
+        limitedAt: new Date(time).toISOString(),
+        minutesAgo: Math.floor((Date.now() - time) / 60000)
+      })),
+      modelStats: Array.from(this.modelStats.entries()).map(([model, stats]) => ({
+        model,
+        ...stats,
+        successRate: stats.successes / (stats.successes + stats.failures)
+      })),
+      lastUsedModel: this.lastUsedModel,
+      preferredModel: this.preferredModel,
+      
+      // API Key statistics
+      apiKeyStats: this.apiKeyManager.getKeyStats(),
+      currentApiKey: this.apiKeyManager.getKeyId(this.currentApiKey),
+      availableApiKeys: this.apiKeyManager.getAvailableKeysCount()
+    };
   }
 
   // Check if we can make requests (basic connectivity test)

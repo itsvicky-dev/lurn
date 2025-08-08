@@ -98,13 +98,14 @@ const AppRoutes: React.FC = () => {
         <Route path="chat/:sessionId" element={<ChatPage />} />
         <Route path="playground" element={<CodePlaygroundPage />} />
         <Route path="games" element={<GamesPage />} />
+        <Route path="games/quiz/:gameId" element={<GamePlayPage />} />
         <Route path="suggestions" element={<SuggestionsPage />} />
         <Route path="admin/suggestions" element={<AdminSuggestionsPage />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>
 
-      {/* Game Play Route (Full Screen) */}
+      {/* Game Play Route (Full Screen) - for coding games */}
       <Route
         path="/games/play/:gameId"
         element={

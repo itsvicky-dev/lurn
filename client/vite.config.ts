@@ -12,5 +12,11 @@ export default defineConfig({
         secure: false,
       }
     }
+  },
+  build: {
+    rollupOptions: {
+      // Ensure _redirects file is copied to dist
+      external: [],
+    }
   }
 })

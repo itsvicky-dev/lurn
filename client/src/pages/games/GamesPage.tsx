@@ -24,7 +24,8 @@ import {
   ChevronRight,
   Sparkles,
   Plus,
-  Wand2
+  Wand2,
+  Brain
 } from 'lucide-react';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import Button from '../../components/ui/Button';
@@ -39,6 +40,7 @@ const gameTypeIcons = {
   code_completion: Puzzle,
   syntax_puzzle: Target,
   algorithm_race: Timer,
+  quiz: Brain,
 };
 
 const difficultyColors = {
@@ -115,7 +117,13 @@ const GamesPage: React.FC = () => {
   const handleStartGame = async (gameId: string) => {
     try {
       await startGame(gameId);
-      navigate(`/games/play/${gameId}`);
+      // Route quiz games to the layout version, others to full-screen
+      const game = games.find(g => g.id === gameId);
+      if (game?.type === 'quiz') {
+        navigate(`/games/quiz/${gameId}`);
+      } else {
+        navigate(`/games/play/${gameId}`);
+      }
     } catch (error) {
       // Error is handled in the context
     }
@@ -133,6 +141,7 @@ const GamesPage: React.FC = () => {
       code_completion: 'Code Completion',
       syntax_puzzle: 'Syntax Puzzle',
       algorithm_race: 'Algorithm Race',
+      quiz: 'Quiz',
     };
     return labels[type as keyof typeof labels] || type;
   };

@@ -342,7 +342,7 @@ const CodePlaygroundPage: React.FC = () => {
                   key={playground.id}
                   className={`group p-3 rounded-lg cursor-pointer transition-colors ${
                     playground.id === currentPlayground?.id
-                      ? 'bg-accent border border-border'
+                      ? 'bg-muted border border-border'
                       : 'hover:bg-muted'
                   }`}
                   onClick={() => setCurrentPlayground(playground)}

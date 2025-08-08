@@ -17,7 +17,7 @@ interface GameContextType {
   loadGames: (filters?: GameFilters) => Promise<void>;
   loadGame: (gameId: string) => Promise<CodingGame>;
   startGame: (gameId: string) => Promise<GameSession>;
-  submitGameSolution: (sessionId: string, code: string) => Promise<GameSession>;
+  submitGameSolution: (sessionId: string, code: string, quizResults?: any) => Promise<GameSession>;
   useHint: (sessionId: string, hintIndex: number) => Promise<void>;
   abandonGame: (sessionId: string) => Promise<void>;
   generateGame: (gameParams: GameGenerationParams) => Promise<CodingGame>;
@@ -131,16 +131,20 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     }
   };
 
-  const submitGameSolution = async (sessionId: string, code: string): Promise<GameSession> => {
+  const submitGameSolution = async (sessionId: string, code: string, quizResults?: any): Promise<GameSession> => {
     try {
       setLoading(true);
-      setLoadingMessage('Testing your solution...');
+      setLoadingMessage(quizResults ? 'Submitting quiz results...' : 'Testing your solution...');
       
-      const { session } = await apiService.submitGameSolution(sessionId, code);
+      const { session } = await apiService.submitGameSolution(sessionId, code, quizResults);
       setCurrentSession(session);
       
       if (session.status === 'completed') {
-        toast.success(`🎉 Congratulations! You earned ${session.score} points!`);
+        if (quizResults) {
+          toast.success(`🎉 Quiz completed! You earned ${session.score} points!`);
+        } else {
+          toast.success(`🎉 Congratulations! You earned ${session.score} points!`);
+        }
         // Refresh progress after completion
         await loadGameProgress();
       } else if (session.status === 'failed') {
@@ -150,7 +154,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
       return session;
     } catch (error: any) {
       console.error('Failed to submit solution:', error);
-      toast.error('Failed to submit solution');
+      toast.error(quizResults ? 'Failed to submit quiz results' : 'Failed to submit solution');
       throw error;
     } finally {
       setLoading(false);

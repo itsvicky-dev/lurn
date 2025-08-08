@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '../../contexts/GameContext';
 import { 
@@ -61,6 +61,7 @@ const CodeEditor: React.FC<{
 const GamePlayPage: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const {
     currentGame,
     currentSession,
@@ -219,19 +220,25 @@ const GamePlayPage: React.FC = () => {
 
   // Handle quiz games differently
   if (currentGame.type === 'quiz') {
+    // Check if we're in the layout (quiz route) or full-screen (play route)
+    const isInLayout = location.pathname.includes('/games/quiz/');
+    
     return (
-      <div className="min-h-screen bg-background">
+      <div className={isInLayout ? "container mx-auto p-6" : "min-h-screen bg-background"}>
         <CodingQuizGame
+          key={`quiz-${currentGame.id}-${currentSession?.id}`}
           game={currentGame}
           session={currentSession}
+          isInLayout={isInLayout}
           onComplete={(result) => {
             // Quiz completion is handled within the component
             console.log('Quiz completed:', result);
+            // Don't navigate away immediately - let user see results
           }}
           onExit={() => navigate('/games')}
-          onSubmitSolution={async (code) => {
+          onSubmitSolution={async (code, quizResults) => {
             if (currentSession) {
-              await submitGameSolution(currentSession.id, code);
+              await submitGameSolution(currentSession.id, code, quizResults);
             }
           }}
         />

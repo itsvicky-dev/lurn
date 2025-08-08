@@ -236,7 +236,7 @@ const ChatPage: React.FC = () => {
                   key={session.id}
                   className={`relative group p-3 rounded-lg cursor-pointer transition-colors ${
                     session.id === currentSession?.id
-                      ? 'bg-accent-semantic border border-border'
+                      ? 'bg-muted border border-border'
                       : 'hover:bg-muted'
                   }`}
                   onClick={() => {

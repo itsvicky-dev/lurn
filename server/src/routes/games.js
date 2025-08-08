@@ -85,7 +85,16 @@ router.post('/coding/:gameId/start', authenticate, async (req, res) => {
 // Submit solution for a game session
 router.post('/sessions/:sessionId/submit', authenticate, async (req, res) => {
   try {
-    const { code } = req.body;
+    const { code, quizResults } = req.body;
+    
+    console.log('Quiz submission received:', {
+      sessionId: req.params.sessionId,
+      userId: req.user.id,
+      hasCode: !!code,
+      hasQuizResults: !!quizResults,
+      quizResultsType: typeof quizResults,
+      quizResultsKeys: quizResults ? Object.keys(quizResults) : null
+    });
     
     const session = await GameSession.findOne({
       _id: req.params.sessionId,
@@ -93,10 +102,12 @@ router.post('/sessions/:sessionId/submit', authenticate, async (req, res) => {
     }).populate('gameId');
     
     if (!session) {
+      console.error('Game session not found:', req.params.sessionId);
       return res.status(404).json({ message: 'Game session not found' });
     }
     
     if (session.status !== 'in_progress') {
+      console.error('Game session not active:', session.status);
       return res.status(400).json({ message: 'Game session is not active' });
     }
     
@@ -104,7 +115,58 @@ router.post('/sessions/:sessionId/submit', authenticate, async (req, res) => {
     session.code = code;
     session.attempts += 1;
     
-    // Test the code against test cases
+    // Handle quiz games differently
+    if (game.type === 'quiz') {
+      // For quiz games, we expect quizResults in the request body
+      if (quizResults && quizResults.results && Array.isArray(quizResults.results)) {
+        session.score = quizResults.score || 0;
+        session.status = 'completed';
+        session.completedAt = new Date();
+        session.timeSpent = Math.floor((quizResults.timeSpent || 0) / 1000); // Convert to seconds
+        
+        // Store quiz-specific data
+        session.quizScore = quizResults.score || 0;
+        session.totalQuestions = quizResults.totalQuestions || 0;
+        session.correctAnswers = quizResults.correctAnswers || 0;
+        
+        // Store quiz results as test results for consistency
+        session.testResults = quizResults.results.map((result, index) => ({
+          testCaseIndex: index,
+          passed: result.isCorrect || false,
+          actualOutput: result.userAnswer || '',
+          expectedOutput: result.correctAnswer || '',
+          executionTime: result.timeSpent || 0,
+          error: null
+        }));
+        
+        // Store answers in the quiz-specific format
+        session.answers = quizResults.results.map((result, index) => ({
+          questionIndex: index,
+          answer: result.userAnswer || '',
+          isCorrect: result.isCorrect || false,
+          timeSpent: result.timeSpent || 0
+        }));
+        
+        // Update user's game progress
+        let progress = await GameProgress.findOne({ userId: req.user.id });
+        if (!progress) {
+          progress = new GameProgress({ userId: req.user.id });
+        }
+        
+        await progress.updateAfterGame(session, game);
+        await session.save();
+        
+        return res.json({ session });
+      } else {
+        console.error('Invalid quiz results format:', { quizResults });
+        return res.status(400).json({ 
+          message: 'Quiz results are required for quiz games',
+          details: 'Expected quizResults object with results array'
+        });
+      }
+    }
+    
+    // Handle regular coding games
     const testResults = [];
     let allTestsPassed = true;
     

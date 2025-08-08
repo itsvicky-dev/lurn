@@ -475,8 +475,12 @@ class ApiService {
     return response.data;
   }
 
-  async submitGameSolution(sessionId: string, code: string): Promise<{ session: any }> {
-    const response = await this.api.post(`/games/sessions/${sessionId}/submit`, { code });
+  async submitGameSolution(sessionId: string, code: string, quizResults?: any): Promise<{ session: any }> {
+    const payload: any = { code };
+    if (quizResults) {
+      payload.quizResults = quizResults;
+    }
+    const response = await this.api.post(`/games/sessions/${sessionId}/submit`, payload);
     return response.data;
   }
 

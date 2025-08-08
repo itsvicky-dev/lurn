@@ -24,9 +24,10 @@ import { CodingGame, GameSession } from '../../types';
 interface CodingQuizGameProps {
   game: CodingGame;
   session: GameSession;
+  isInLayout?: boolean;
   onComplete: (result: QuizResult) => void;
   onExit: () => void;
-  onSubmitSolution: (code: string) => Promise<void>;
+  onSubmitSolution: (code: string, quizResults?: QuizResult) => Promise<void>;
 }
 
 interface QuizResult {
@@ -53,6 +54,7 @@ interface QuestionResult {
 const CodingQuizGame: React.FC<CodingQuizGameProps> = ({
   game,
   session,
+  isInLayout = false,
   onComplete,
   onExit,
   onSubmitSolution
@@ -65,9 +67,16 @@ const CodingQuizGame: React.FC<CodingQuizGameProps> = ({
   const [gameStartTime] = useState(Date.now());
   const [showResult, setShowResult] = useState(false);
   const [result, setResult] = useState<QuizResult | null>(null);
+  const [quizCompleted, setQuizCompleted] = useState(false);
   const [selectedAnswer, setSelectedAnswer] = useState<string>('');
   const [showExplanation, setShowExplanation] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [currentQuestionResult, setCurrentQuestionResult] = useState<{
+    isCorrect: boolean;
+    correctAnswer: string;
+    explanation?: string;
+  } | null>(null);
 
   const questions = game.questions || [];
   const currentQuestion = questions[currentQuestionIndex];
@@ -95,6 +104,46 @@ const CodingQuizGame: React.FC<CodingQuizGameProps> = ({
     setQuestionStartTime(Date.now());
   }, [currentQuestionIndex]);
 
+  // Prevent component reset when session updates after completion
+  useEffect(() => {
+    if (session?.status === 'completed' && !quizCompleted && result) {
+      setQuizCompleted(true);
+      setShowResult(true);
+    }
+  }, [session?.status, quizCompleted, result]);
+
+  // Check if session is already completed on mount
+  useEffect(() => {
+    if (session?.status === 'completed' && session.quizScore !== undefined) {
+      
+      // Reconstruct quiz results from session data
+      const reconstructedResult: QuizResult = {
+        score: session.quizScore || session.score || 0,
+        totalPoints: game.points || 0,
+        correctAnswers: session.correctAnswers || 0,
+        totalQuestions: session.totalQuestions || questions.length,
+        timeSpent: (session.timeSpent || 0) * 1000, // Convert back to milliseconds
+        accuracy: session.correctAnswers && session.totalQuestions 
+          ? (session.correctAnswers / session.totalQuestions) * 100 
+          : 0,
+        results: session.testResults?.map((testResult: any, index: number) => ({
+          questionIndex: index,
+          question: questions[index]?.question || '',
+          userAnswer: testResult.actualOutput || '',
+          correctAnswer: testResult.expectedOutput || '',
+          isCorrect: testResult.passed || false,
+          points: testResult.passed ? (questions[index]?.points || 0) : 0,
+          timeSpent: testResult.executionTime || 0,
+          explanation: questions[index]?.explanation || ''
+        })) || []
+      };
+      
+      setResult(reconstructedResult);
+      setQuizCompleted(true);
+      setShowResult(true);
+    }
+  }, [session, game.points, questions]);
+
   const handleAnswerSelect = (answer: string) => {
     setSelectedAnswer(answer);
   };
@@ -112,15 +161,22 @@ const CodingQuizGame: React.FC<CodingQuizGameProps> = ({
       [currentQuestionIndex]: timeSpent
     }));
 
-    if (currentQuestion.explanation) {
-      setShowExplanation(true);
-    } else {
-      handleNextQuestion();
-    }
+    // Check if answer is correct and show immediate feedback
+    const isCorrect = selectedAnswer.trim().toLowerCase() === currentQuestion.correctAnswer.trim().toLowerCase();
+    
+    setCurrentQuestionResult({
+      isCorrect,
+      correctAnswer: currentQuestion.correctAnswer,
+      explanation: currentQuestion.explanation
+    });
+    
+    setShowFeedback(true);
   };
 
   const handleNextQuestion = () => {
     setShowExplanation(false);
+    setShowFeedback(false);
+    setCurrentQuestionResult(null);
     setSelectedAnswer('');
     
     if (isLastQuestion) {
@@ -167,10 +223,11 @@ const CodingQuizGame: React.FC<CodingQuizGameProps> = ({
       results
     };
 
+    setQuizCompleted(true);
     setResult(quizResult);
     setShowResult(true);
     
-    // Submit the quiz result as a "code solution" to integrate with the game system
+    // Submit the quiz result with proper quiz data
     try {
       setIsSubmitting(true);
       const quizCode = `// Quiz Results
@@ -184,14 +241,30 @@ ${results.map((r, i) =>
 // Correct: ${r.correctAnswer}`
 ).join('\n')}`;
 
-      await onSubmitSolution(quizCode);
-    } catch (error) {
+
+
+      await onSubmitSolution(quizCode, quizResult);
+    } catch (error: any) {
       console.error('Failed to submit quiz results:', error);
+      
+      // Show more specific error message
+      let errorMessage = 'Failed to submit quiz results';
+      if (error.response?.status === 400) {
+        errorMessage = error.response?.data?.message || 'Invalid quiz data submitted';
+      } else if (error.response?.status === 404) {
+        errorMessage = 'Quiz session not found';
+      } else if (error.code === 'ERR_NETWORK') {
+        errorMessage = 'Network error - please check your connection';
+      }
+      
+      // You might want to show this error to the user
+      console.error('Quiz submission error:', errorMessage);
     } finally {
       setIsSubmitting(false);
     }
 
-    onComplete(quizResult);
+    // Don't call onComplete immediately - let user see results first
+    // onComplete(quizResult);
   };
 
   const formatTime = (seconds: number) => {
@@ -215,12 +288,13 @@ ${results.map((r, i) =>
     return 'text-red-500';
   };
 
-  if (showResult && result) {
+  // Always show results if quiz is completed, regardless of other state
+  if ((showResult && result) || (quizCompleted && result)) {
     return (
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="max-w-4xl mx-auto p-6 space-y-6"
+        className={`max-w-4xl mx-auto space-y-6 ${isInLayout ? '' : 'p-6'}`}
       >
         {/* Results Header */}
         <div className="text-center space-y-4">
@@ -261,36 +335,80 @@ ${results.map((r, i) =>
           transition={{ delay: 0.5 }}
           className="grid grid-cols-2 md:grid-cols-4 gap-4"
         >
-          <div className="card p-4 text-center">
-            <div className={`text-2xl font-bold ${getScoreColor(result.accuracy)}`}>
-              {result.score}
+          <motion.div 
+            className="card p-4 text-center relative overflow-hidden"
+            whileHover={{ scale: 1.05 }}
+            transition={{ type: "spring", stiffness: 300 }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-yellow-400/10 to-orange-500/10"></div>
+            <div className="relative">
+              <div className={`text-3xl font-bold ${getScoreColor(result.accuracy)} flex items-center justify-center`}>
+                <Star className="h-6 w-6 mr-1" />
+                {result.score}
+              </div>
+              <div className="text-sm text-muted-foreground">Points Earned</div>
+              <div className="text-xs text-muted-foreground mt-1">
+                out of {result.totalPoints}
+              </div>
             </div>
-            <div className="text-sm text-muted-foreground">Points Earned</div>
-          </div>
+          </motion.div>
           
-          <div className="card p-4 text-center">
-            <div className={`text-2xl font-bold ${getScoreColor(result.accuracy)}`}>
-              {result.accuracy.toFixed(1)}%
+          <motion.div 
+            className="card p-4 text-center relative overflow-hidden"
+            whileHover={{ scale: 1.05 }}
+            transition={{ type: "spring", stiffness: 300 }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-400/10 to-purple-500/10"></div>
+            <div className="relative">
+              <div className={`text-3xl font-bold ${getScoreColor(result.accuracy)} flex items-center justify-center`}>
+                <Target className="h-6 w-6 mr-1" />
+                {result.accuracy.toFixed(1)}%
+              </div>
+              <div className="text-sm text-muted-foreground">Accuracy</div>
+              <div className="text-xs text-muted-foreground mt-1">
+                {result.accuracy >= 90 ? 'Excellent!' : result.accuracy >= 70 ? 'Good job!' : 'Keep practicing!'}
+              </div>
             </div>
-            <div className="text-sm text-muted-foreground">Accuracy</div>
-          </div>
+          </motion.div>
           
-          <div className="card p-4 text-center">
-            <div className="text-2xl font-bold text-foreground">
-              {result.correctAnswers}/{result.totalQuestions}
+          <motion.div 
+            className="card p-4 text-center relative overflow-hidden"
+            whileHover={{ scale: 1.05 }}
+            transition={{ type: "spring", stiffness: 300 }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-green-400/10 to-emerald-500/10"></div>
+            <div className="relative">
+              <div className="text-3xl font-bold text-foreground flex items-center justify-center">
+                <CheckCircle className="h-6 w-6 mr-1 text-green-500" />
+                {result.correctAnswers}/{result.totalQuestions}
+              </div>
+              <div className="text-sm text-muted-foreground">Correct Answers</div>
+              <div className="text-xs text-muted-foreground mt-1">
+                {Math.round((result.correctAnswers / result.totalQuestions) * 100)}% success rate
+              </div>
             </div>
-            <div className="text-sm text-muted-foreground">Correct</div>
-          </div>
+          </motion.div>
           
-          <div className="card p-4 text-center">
-            <div className="text-2xl font-bold text-foreground">
-              {formatTime(Math.floor(result.timeSpent / 1000))}
+          <motion.div 
+            className="card p-4 text-center relative overflow-hidden"
+            whileHover={{ scale: 1.05 }}
+            transition={{ type: "spring", stiffness: 300 }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-indigo-400/10 to-cyan-500/10"></div>
+            <div className="relative">
+              <div className="text-3xl font-bold text-foreground flex items-center justify-center">
+                <Timer className="h-6 w-6 mr-1" />
+                {formatTime(Math.floor(result.timeSpent / 1000))}
+              </div>
+              <div className="text-sm text-muted-foreground">Total Time</div>
+              <div className="text-xs text-muted-foreground mt-1">
+                ~{Math.round(result.timeSpent / 1000 / result.totalQuestions)}s per question
+              </div>
             </div>
-            <div className="text-sm text-muted-foreground">Time</div>
-          </div>
+          </motion.div>
         </motion.div>
 
-        {/* Detailed Results */}
+        {/* Progress Overview */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -299,17 +417,40 @@ ${results.map((r, i) =>
         >
           <h3 className="text-xl font-semibold mb-4 flex items-center">
             <Target className="h-5 w-5 mr-2" />
-            Question Results
+            Progress Overview
           </h3>
           
-          <div className="space-y-4">
+          {/* Progress Bar */}
+          <div className="mb-6">
+            <div className="flex justify-between text-sm mb-2">
+              <span>Overall Progress</span>
+              <span>{result.correctAnswers}/{result.totalQuestions} correct</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-3">
+              <motion.div
+                className={`h-3 rounded-full ${
+                  result.accuracy >= 80 ? 'bg-green-500' : 
+                  result.accuracy >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+                }`}
+                initial={{ width: 0 }}
+                animate={{ width: `${result.accuracy}%` }}
+                transition={{ duration: 1, delay: 0.8 }}
+              />
+            </div>
+          </div>
+
+          {/* Question by Question Results */}
+          <div className="space-y-3">
             {result.results.map((questionResult, index) => (
-              <div
+              <motion.div
                 key={index}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.7 + index * 0.1 }}
                 className={`p-4 rounded-lg border-l-4 ${
                   questionResult.isCorrect 
-                    ? 'border-green-500 bg-green-50' 
-                    : 'border-red-500 bg-red-50'
+                    ? 'border-green-500 bg-green-50 dark:bg-green-900/20' 
+                    : 'border-red-500 bg-red-50 dark:bg-red-900/20'
                 }`}
               >
                 <div className="flex items-start justify-between">
@@ -321,47 +462,144 @@ ${results.map((r, i) =>
                         <XCircle className="h-5 w-5 text-red-500" />
                       )}
                       <span className="font-medium">Question {index + 1}</span>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        questionResult.isCorrect 
+                          ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100' 
+                          : 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100'
+                      }`}>
+                        {questionResult.isCorrect ? 'Correct' : 'Incorrect'}
+                      </span>
                     </div>
                     
-                    <p className="text-sm text-muted-foreground mb-2">
+                    <p className="text-sm text-muted-foreground mb-3 font-medium">
                       {questionResult.question}
                     </p>
                     
-                    <div className="text-sm space-y-1">
-                      <div>
-                        <span className="font-medium">Your answer: </span>
-                        <span className={questionResult.isCorrect ? 'text-green-600' : 'text-red-600'}>
+                    <div className="text-sm space-y-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-medium">Your answer:</span>
+                        <span className={`px-2 py-1 rounded font-medium ${
+                          questionResult.isCorrect 
+                            ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100' 
+                            : 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100'
+                        }`}>
                           {questionResult.userAnswer || 'No answer'}
                         </span>
                       </div>
                       {!questionResult.isCorrect && (
-                        <div>
-                          <span className="font-medium">Correct answer: </span>
-                          <span className="text-green-600">{questionResult.correctAnswer}</span>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-medium">Correct answer:</span>
+                          <span className="px-2 py-1 rounded bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100 font-medium">
+                            {questionResult.correctAnswer}
+                          </span>
                         </div>
                       )}
                       {questionResult.explanation && (
-                        <div className="mt-2 p-2 bg-blue-50 rounded text-blue-800">
-                          <span className="font-medium">Explanation: </span>
-                          {questionResult.explanation}
+                        <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                          <div className="flex items-start space-x-2">
+                            <Lightbulb className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <span className="font-medium text-blue-900 dark:text-blue-100">Explanation: </span>
+                              <span className="text-blue-800 dark:text-blue-200">{questionResult.explanation}</span>
+                            </div>
+                          </div>
                         </div>
                       )}
                     </div>
                   </div>
                   
-                  <div className="text-right">
+                  <div className="text-right ml-4">
                     <div className={`text-lg font-bold ${
                       questionResult.isCorrect ? 'text-green-500' : 'text-red-500'
                     }`}>
-                      {questionResult.points} pts
+                      {questionResult.isCorrect ? '+' : '0'}{questionResult.points} pts
                     </div>
-                    <div className="text-xs text-muted-foreground">
+                    <div className="text-xs text-muted-foreground flex items-center">
+                      <Clock className="h-3 w-3 mr-1" />
                       {formatTime(Math.floor(questionResult.timeSpent / 1000))}
                     </div>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             ))}
+          </div>
+        </motion.div>
+
+        {/* Performance Insights */}
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.8 }}
+          className="card p-6"
+        >
+          <h3 className="text-xl font-semibold mb-4 flex items-center">
+            <Brain className="h-5 w-5 mr-2" />
+            Performance Insights
+          </h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Speed Analysis */}
+            <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg">
+              <Timer className="h-8 w-8 text-blue-500 mx-auto mb-2" />
+              <div className="text-lg font-bold text-blue-700 dark:text-blue-300">
+                {Math.round(result.timeSpent / 1000 / result.totalQuestions)}s
+              </div>
+              <div className="text-sm text-blue-600 dark:text-blue-400">Avg per question</div>
+              <div className="text-xs text-muted-foreground mt-1">
+                {result.timeSpent / 1000 / result.totalQuestions < 30 ? 'Fast pace!' : 
+                 result.timeSpent / 1000 / result.totalQuestions < 60 ? 'Good pace' : 'Take your time'}
+              </div>
+            </div>
+
+            {/* Accuracy Analysis */}
+            <div className="text-center p-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg">
+              <Target className="h-8 w-8 text-green-500 mx-auto mb-2" />
+              <div className="text-lg font-bold text-green-700 dark:text-green-300">
+                {result.accuracy.toFixed(0)}%
+              </div>
+              <div className="text-sm text-green-600 dark:text-green-400">Accuracy rate</div>
+              <div className="text-xs text-muted-foreground mt-1">
+                {result.accuracy >= 90 ? 'Outstanding!' : 
+                 result.accuracy >= 70 ? 'Well done!' : 'Room for improvement'}
+              </div>
+            </div>
+
+            {/* Score Analysis */}
+            <div className="text-center p-4 bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 rounded-lg">
+              <Award className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
+              <div className="text-lg font-bold text-yellow-700 dark:text-yellow-300">
+                {Math.round((result.score / result.totalPoints) * 100)}%
+              </div>
+              <div className="text-sm text-yellow-600 dark:text-yellow-400">Score efficiency</div>
+              <div className="text-xs text-muted-foreground mt-1">
+                {result.score / result.totalPoints >= 0.9 ? 'Perfect!' : 
+                 result.score / result.totalPoints >= 0.7 ? 'Great job!' : 'Keep improving!'}
+              </div>
+            </div>
+          </div>
+
+          {/* Recommendations */}
+          <div className="mt-6 p-4 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+            <div className="flex items-start space-x-3">
+              <Lightbulb className="h-5 w-5 text-purple-600 dark:text-purple-400 mt-0.5 flex-shrink-0" />
+              <div>
+                <h4 className="font-medium text-purple-900 dark:text-purple-100 mb-1">Recommendations</h4>
+                <div className="text-sm text-purple-800 dark:text-purple-200 space-y-1">
+                  {result.accuracy < 70 && (
+                    <p>• Review the topics covered in this quiz to strengthen your understanding</p>
+                  )}
+                  {result.timeSpent / 1000 / result.totalQuestions > 60 && (
+                    <p>• Practice similar questions to improve your response time</p>
+                  )}
+                  {result.correctAnswers === result.totalQuestions && (
+                    <p>• Excellent work! Try a more challenging quiz to continue growing</p>
+                  )}
+                  {result.accuracy >= 70 && result.accuracy < 90 && (
+                    <p>• You're doing well! Focus on the areas where you made mistakes</p>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         </motion.div>
 
@@ -369,12 +607,15 @@ ${results.map((r, i) =>
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.7 }}
+          transition={{ delay: 0.9 }}
           className="flex justify-center space-x-4"
         >
           <Button
             variant="outline"
-            onClick={onExit}
+            onClick={() => {
+              onComplete(result);
+              onExit();
+            }}
             icon={<RotateCcw className="h-4 w-4" />}
           >
             Back to Games
@@ -399,11 +640,24 @@ ${results.map((r, i) =>
     );
   }
 
+  // If quiz is completed but we're somehow still rendering questions, show loading
+  if (quizCompleted && !showResult) {
+    return (
+      <div className={`max-w-4xl mx-auto text-center ${isInLayout ? '' : 'p-6'}`}>
+        <div className="card p-8">
+          <Trophy className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold mb-2">Loading Results...</h2>
+          <p className="text-muted-foreground">Please wait while we prepare your quiz results.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="max-w-4xl mx-auto p-6 space-y-6"
+      className={`max-w-4xl mx-auto space-y-6 ${isInLayout ? '' : 'p-6'}`}
     >
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -495,14 +749,23 @@ ${results.map((r, i) =>
                   {currentQuestion.options.map((option, index) => (
                     <motion.button
                       key={index}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => handleAnswerSelect(option)}
+                      whileHover={!showFeedback ? { scale: 1.02 } : {}}
+                      whileTap={!showFeedback ? { scale: 0.98 } : {}}
+                      onClick={() => !showFeedback && handleAnswerSelect(option)}
+                      disabled={showFeedback}
                       className={`w-full p-4 text-left rounded-lg border-2 transition-all ${
-                        selectedAnswer === option
-                          ? 'border-primary-500 bg-primary-50'
-                          : 'border-border hover:border-primary-300'
-                      }`}
+                        showFeedback 
+                          ? selectedAnswer === option
+                            ? currentQuestionResult?.isCorrect
+                              ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                              : 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                            : option === currentQuestionResult?.correctAnswer && !currentQuestionResult?.isCorrect
+                              ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                              : 'border-gray-300 bg-gray-50 dark:bg-gray-800 opacity-60'
+                          : selectedAnswer === option
+                            ? 'border-primary-500 bg-primary-50'
+                            : 'border-border hover:border-primary-300'
+                      } ${showFeedback ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                     >
                       <div className="flex items-center space-x-3">
                         <div className={`w-4 h-4 rounded-full border-2 ${
@@ -526,14 +789,23 @@ ${results.map((r, i) =>
                   {['True', 'False'].map((option) => (
                     <motion.button
                       key={option}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => handleAnswerSelect(option)}
+                      whileHover={!showFeedback ? { scale: 1.02 } : {}}
+                      whileTap={!showFeedback ? { scale: 0.98 } : {}}
+                      onClick={() => !showFeedback && handleAnswerSelect(option)}
+                      disabled={showFeedback}
                       className={`p-4 rounded-lg border-2 transition-all ${
-                        selectedAnswer === option
-                          ? 'border-primary-500 bg-primary-50'
-                          : 'border-border hover:border-primary-300'
-                      }`}
+                        showFeedback 
+                          ? selectedAnswer === option
+                            ? currentQuestionResult?.isCorrect
+                              ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                              : 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                            : option === currentQuestionResult?.correctAnswer && !currentQuestionResult?.isCorrect
+                              ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                              : 'border-gray-300 bg-gray-50 dark:bg-gray-800 opacity-60'
+                          : selectedAnswer === option
+                            ? 'border-primary-500 bg-primary-50'
+                            : 'border-border hover:border-primary-300'
+                      } ${showFeedback ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                     >
                       {option}
                     </motion.button>
@@ -544,9 +816,14 @@ ${results.map((r, i) =>
               {currentQuestion.type === 'short_answer' && (
                 <textarea
                   value={selectedAnswer}
-                  onChange={(e) => handleAnswerSelect(e.target.value)}
+                  onChange={(e) => !showFeedback && handleAnswerSelect(e.target.value)}
                   placeholder="Type your answer here..."
-                  className="w-full p-4 border-2 border-border rounded-lg focus:border-primary-500 focus:outline-none resize-none"
+                  disabled={showFeedback}
+                  className={`w-full p-4 border-2 rounded-lg focus:outline-none resize-none ${
+                    showFeedback 
+                      ? 'border-gray-300 bg-gray-50 dark:bg-gray-800 cursor-not-allowed opacity-60'
+                      : 'border-border focus:border-primary-500'
+                  }`}
                   rows={4}
                 />
               )}
@@ -554,31 +831,87 @@ ${results.map((r, i) =>
               {currentQuestion.type === 'code' && (
                 <textarea
                   value={selectedAnswer}
-                  onChange={(e) => handleAnswerSelect(e.target.value)}
+                  onChange={(e) => !showFeedback && handleAnswerSelect(e.target.value)}
                   placeholder="Write your code here..."
-                  className="w-full p-4 border-2 border-border rounded-lg focus:border-primary-500 focus:outline-none font-mono text-sm resize-none bg-gray-900 text-gray-100"
+                  disabled={showFeedback}
+                  className={`w-full p-4 border-2 rounded-lg focus:outline-none font-mono text-sm resize-none ${
+                    showFeedback 
+                      ? 'border-gray-300 bg-gray-700 text-gray-400 cursor-not-allowed opacity-60'
+                      : 'border-border focus:border-primary-500 bg-gray-900 text-gray-100'
+                  }`}
                   rows={8}
                 />
               )}
             </div>
           </div>
 
-          {/* Explanation */}
+          {/* Immediate Feedback */}
           <AnimatePresence>
-            {showExplanation && currentQuestion.explanation && (
+            {showFeedback && currentQuestionResult && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
-                className="p-4 bg-blue-50 border border-blue-200 rounded-lg"
+                className={`p-4 border rounded-lg ${
+                  currentQuestionResult.isCorrect 
+                    ? 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800' 
+                    : 'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800'
+                }`}
               >
-                <div className="flex items-start space-x-2">
-                  <div className="p-1 rounded-full bg-blue-100 text-blue-600 mt-1">
-                    <Lightbulb className="h-4 w-4" />
+                <div className="flex items-start space-x-3">
+                  <div className={`p-2 rounded-full ${
+                    currentQuestionResult.isCorrect 
+                      ? 'bg-green-100 text-green-600 dark:bg-green-800 dark:text-green-100' 
+                      : 'bg-red-100 text-red-600 dark:bg-red-800 dark:text-red-100'
+                  }`}>
+                    {currentQuestionResult.isCorrect ? (
+                      <CheckCircle className="h-5 w-5" />
+                    ) : (
+                      <XCircle className="h-5 w-5" />
+                    )}
                   </div>
-                  <div>
-                    <h4 className="font-medium text-blue-900 mb-1">Explanation</h4>
-                    <p className="text-blue-800 text-sm">{currentQuestion.explanation}</p>
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <h4 className={`font-semibold ${
+                        currentQuestionResult.isCorrect 
+                          ? 'text-green-900 dark:text-green-100' 
+                          : 'text-red-900 dark:text-red-100'
+                      }`}>
+                        {currentQuestionResult.isCorrect ? 'Correct!' : 'Incorrect'}
+                      </h4>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        currentQuestionResult.isCorrect 
+                          ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100' 
+                          : 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100'
+                      }`}>
+                        {currentQuestionResult.isCorrect ? `+${currentQuestion.points} pts` : '0 pts'}
+                      </span>
+                    </div>
+                    
+                    {!currentQuestionResult.isCorrect && (
+                      <div className="mb-3">
+                        <p className="text-sm text-red-800 dark:text-red-200 mb-1">
+                          <span className="font-medium">Correct answer:</span>
+                        </p>
+                        <div className="px-3 py-2 bg-green-100 dark:bg-green-800 rounded border border-green-200 dark:border-green-700">
+                          <span className="text-green-800 dark:text-green-100 font-medium">
+                            {currentQuestionResult.correctAnswer}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {currentQuestionResult.explanation && (
+                      <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-800">
+                        <div className="flex items-start space-x-2">
+                          <Lightbulb className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <span className="font-medium text-blue-900 dark:text-blue-100">Explanation: </span>
+                            <span className="text-blue-800 dark:text-blue-200">{currentQuestionResult.explanation}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </motion.div>
@@ -593,11 +926,12 @@ ${results.map((r, i) =>
             </div>
             
             <div className="space-x-3">
-              {showExplanation ? (
+              {showFeedback ? (
                 <Button
                   onClick={handleNextQuestion}
                   icon={isLastQuestion ? <Trophy className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                   disabled={isSubmitting}
+                  className={currentQuestionResult?.isCorrect ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'}
                 >
                   {isSubmitting ? 'Submitting...' : isLastQuestion ? 'Finish Quiz' : 'Next Question'}
                 </Button>

@@ -11,7 +11,8 @@ import {
   Target,
   Award,
   Timer,
-  RotateCcw
+  RotateCcw,
+  Lightbulb
 } from 'lucide-react';
 import Button from '../ui/Button';
 
@@ -241,34 +242,107 @@ const QuizGame: React.FC<QuizGameProps> = ({
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.5 }}
-          className="grid grid-cols-2 md:grid-cols-4 gap-4"
+          className="space-y-6"
         >
-          <div className="card p-4 text-center">
-            <div className={`text-2xl font-bold ${getScoreColor(result.accuracy)}`}>
+          {/* Main Score Display */}
+          <div className="text-center">
+            <div className={`text-6xl font-bold ${getScoreColor(result.accuracy)} mb-2`}>
               {result.score}
             </div>
-            <div className="text-sm text-muted-foreground">Points</div>
-          </div>
-          
-          <div className="card p-4 text-center">
-            <div className={`text-2xl font-bold ${getScoreColor(result.accuracy)}`}>
-              {result.accuracy.toFixed(1)}%
+            <div className="text-lg text-muted-foreground mb-4">
+              out of {result.totalPoints} points
             </div>
-            <div className="text-sm text-muted-foreground">Accuracy</div>
-          </div>
-          
-          <div className="card p-4 text-center">
-            <div className="text-2xl font-bold text-foreground">
-              {result.correctAnswers}/{result.totalQuestions}
+            
+            {/* Performance Badge */}
+            <div className="inline-flex items-center space-x-2 px-4 py-2 rounded-full bg-gradient-to-r from-primary-100 to-accent-100">
+              {result.accuracy >= 90 ? (
+                <>
+                  <Trophy className="h-5 w-5 text-yellow-500" />
+                  <span className="font-semibold text-yellow-700">Excellent!</span>
+                </>
+              ) : result.accuracy >= 70 ? (
+                <>
+                  <Star className="h-5 w-5 text-blue-500" />
+                  <span className="font-semibold text-blue-700">Good Job!</span>
+                </>
+              ) : result.accuracy >= 50 ? (
+                <>
+                  <Target className="h-5 w-5 text-orange-500" />
+                  <span className="font-semibold text-orange-700">Keep Trying!</span>
+                </>
+              ) : (
+                <>
+                  <RotateCcw className="h-5 w-5 text-red-500" />
+                  <span className="font-semibold text-red-700">Practice More!</span>
+                </>
+              )}
             </div>
-            <div className="text-sm text-muted-foreground">Correct</div>
           </div>
-          
-          <div className="card p-4 text-center">
-            <div className="text-2xl font-bold text-foreground">
-              {formatTime(Math.floor(result.timeSpent / 1000))}
+
+          {/* Detailed Stats Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="card p-4 text-center border-l-4 border-green-500">
+              <div className="text-2xl font-bold text-green-600">
+                {result.correctAnswers}
+              </div>
+              <div className="text-sm text-muted-foreground">Correct Answers</div>
+              <div className="text-xs text-green-600 mt-1">
+                {((result.correctAnswers / result.totalQuestions) * 100).toFixed(1)}%
+              </div>
             </div>
-            <div className="text-sm text-muted-foreground">Time</div>
+            
+            <div className="card p-4 text-center border-l-4 border-red-500">
+              <div className="text-2xl font-bold text-red-600">
+                {result.totalQuestions - result.correctAnswers}
+              </div>
+              <div className="text-sm text-muted-foreground">Wrong Answers</div>
+              <div className="text-xs text-red-600 mt-1">
+                {(((result.totalQuestions - result.correctAnswers) / result.totalQuestions) * 100).toFixed(1)}%
+              </div>
+            </div>
+            
+            <div className="card p-4 text-center border-l-4 border-blue-500">
+              <div className="text-2xl font-bold text-blue-600">
+                {result.accuracy.toFixed(1)}%
+              </div>
+              <div className="text-sm text-muted-foreground">Accuracy</div>
+              <div className="text-xs text-blue-600 mt-1">
+                Overall Performance
+              </div>
+            </div>
+            
+            <div className="card p-4 text-center border-l-4 border-purple-500">
+              <div className="text-2xl font-bold text-purple-600">
+                {formatTime(Math.floor(result.timeSpent / 1000))}
+              </div>
+              <div className="text-sm text-muted-foreground">Total Time</div>
+              <div className="text-xs text-purple-600 mt-1">
+                Avg: {formatTime(Math.floor(result.timeSpent / 1000 / result.totalQuestions))}
+              </div>
+            </div>
+          </div>
+
+          {/* Progress Bar */}
+          <div className="card p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium">Quiz Progress</span>
+              <span className="text-sm text-muted-foreground">
+                {result.correctAnswers} of {result.totalQuestions} questions correct
+              </span>
+            </div>
+            <div className="w-full bg-muted rounded-full h-3">
+              <motion.div
+                className="bg-gradient-to-r from-green-500 to-emerald-500 h-3 rounded-full"
+                initial={{ width: 0 }}
+                animate={{ width: `${result.accuracy}%` }}
+                transition={{ duration: 1, delay: 0.5 }}
+              />
+            </div>
+            <div className="flex justify-between text-xs text-muted-foreground mt-1">
+              <span>0%</span>
+              <span className="font-medium">{result.accuracy.toFixed(1)}%</span>
+              <span>100%</span>
+            </div>
           </div>
         </motion.div>
 
@@ -278,66 +352,137 @@ const QuizGame: React.FC<QuizGameProps> = ({
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.6 }}
           className="card p-6"
+          data-results-section
         >
-          <h3 className="text-xl font-semibold mb-4 flex items-center">
-            <Target className="h-5 w-5 mr-2" />
-            Question Results
-          </h3>
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-semibold flex items-center">
+              <Target className="h-5 w-5 mr-2" />
+              Question-by-Question Results
+            </h3>
+            <div className="text-sm text-muted-foreground">
+              {result.correctAnswers} correct • {result.totalQuestions - result.correctAnswers} incorrect
+            </div>
+          </div>
           
           <div className="space-y-4">
-            {result.results.map((questionResult, index) => (
-              <div
-                key={questionResult.questionId}
-                className={`p-4 rounded-lg border-l-4 ${
-                  questionResult.isCorrect 
-                    ? 'border-green-500 bg-green-50' 
-                    : 'border-red-500 bg-red-50'
-                }`}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-2">
-                      {questionResult.isCorrect ? (
-                        <CheckCircle className="h-5 w-5 text-green-500" />
-                      ) : (
-                        <XCircle className="h-5 w-5 text-red-500" />
-                      )}
-                      <span className="font-medium">Question {index + 1}</span>
+            {result.results.map((questionResult, index) => {
+              const question = questions.find(q => q.id === questionResult.questionId);
+              return (
+                <motion.div
+                  key={questionResult.questionId}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.7 + index * 0.1 }}
+                  className={`p-5 rounded-lg border-2 transition-all ${
+                    questionResult.isCorrect 
+                      ? 'border-green-200 bg-gradient-to-r from-green-50 to-emerald-50' 
+                      : 'border-red-200 bg-gradient-to-r from-red-50 to-pink-50'
+                  }`}
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center space-x-3">
+                      <div className={`p-2 rounded-full ${
+                        questionResult.isCorrect 
+                          ? 'bg-green-100 text-green-600' 
+                          : 'bg-red-100 text-red-600'
+                      }`}>
+                        {questionResult.isCorrect ? (
+                          <CheckCircle className="h-5 w-5" />
+                        ) : (
+                          <XCircle className="h-5 w-5" />
+                        )}
+                      </div>
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <span className="font-semibold text-lg">Question {index + 1}</span>
+                          {question && (
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(question.difficulty)}`}>
+                              {question.difficulty}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                          <Timer className="h-3 w-3" />
+                          <span>{formatTime(Math.floor(questionResult.timeSpent / 1000))}</span>
+                        </div>
+                      </div>
                     </div>
                     
-                    <p className="text-sm text-muted-foreground mb-2">
-                      {questionResult.question}
-                    </p>
-                    
-                    <div className="text-sm space-y-1">
-                      <div>
-                        <span className="font-medium">Your answer: </span>
-                        <span className={questionResult.isCorrect ? 'text-green-600' : 'text-red-600'}>
-                          {questionResult.userAnswer || 'No answer'}
-                        </span>
+                    <div className="text-right">
+                      <div className={`text-2xl font-bold ${
+                        questionResult.isCorrect ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {questionResult.points}
                       </div>
-                      {!questionResult.isCorrect && (
-                        <div>
-                          <span className="font-medium">Correct answer: </span>
-                          <span className="text-green-600">{questionResult.correctAnswer}</span>
-                        </div>
-                      )}
+                      <div className="text-xs text-muted-foreground">
+                        {question ? `/ ${question.points}` : ''} pts
+                      </div>
                     </div>
                   </div>
                   
-                  <div className="text-right">
-                    <div className={`text-lg font-bold ${
-                      questionResult.isCorrect ? 'text-green-500' : 'text-red-500'
-                    }`}>
-                      {questionResult.points} pts
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {formatTime(Math.floor(questionResult.timeSpent / 1000))}
-                    </div>
+                  <div className="mb-4">
+                    <p className="text-foreground font-medium mb-3">
+                      {questionResult.question}
+                    </p>
                   </div>
-                </div>
-              </div>
-            ))}
+                  
+                  <div className="space-y-3">
+                    {/* User's Answer */}
+                    <div className={`p-3 rounded-lg ${
+                      questionResult.isCorrect 
+                        ? 'bg-green-100 border border-green-200' 
+                        : 'bg-red-100 border border-red-200'
+                    }`}>
+                      <div className="flex items-center space-x-2 mb-1">
+                        <span className="text-sm font-semibold">Your Answer:</span>
+                        {questionResult.isCorrect ? (
+                          <span className="text-xs bg-green-200 text-green-800 px-2 py-1 rounded-full">
+                            ✓ Correct
+                          </span>
+                        ) : (
+                          <span className="text-xs bg-red-200 text-red-800 px-2 py-1 rounded-full">
+                            ✗ Incorrect
+                          </span>
+                        )}
+                      </div>
+                      <p className={`font-medium ${
+                        questionResult.isCorrect ? 'text-green-700' : 'text-red-700'
+                      }`}>
+                        {questionResult.userAnswer || 'No answer provided'}
+                      </p>
+                    </div>
+                    
+                    {/* Correct Answer (if wrong) */}
+                    {!questionResult.isCorrect && (
+                      <div className="p-3 rounded-lg bg-green-100 border border-green-200">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <span className="text-sm font-semibold text-green-700">Correct Answer:</span>
+                          <span className="text-xs bg-green-200 text-green-800 px-2 py-1 rounded-full">
+                            ✓ Right Answer
+                          </span>
+                        </div>
+                        <p className="font-medium text-green-700">
+                          {questionResult.correctAnswer}
+                        </p>
+                      </div>
+                    )}
+                    
+                    {/* Explanation (if available) */}
+                    {question?.explanation && (
+                      <div className="p-3 rounded-lg bg-blue-50 border border-blue-200">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <Lightbulb className="h-4 w-4 text-blue-600" />
+                          <span className="text-sm font-semibold text-blue-700">Explanation:</span>
+                        </div>
+                        <p className="text-blue-700 text-sm">
+                          {question.explanation}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              );
+            })}
           </div>
         </motion.div>
 
@@ -345,23 +490,71 @@ const QuizGame: React.FC<QuizGameProps> = ({
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.7 }}
-          className="flex justify-center space-x-4"
+          transition={{ delay: 0.8 }}
+          className="space-y-4"
         >
-          <Button
-            variant="outline"
-            onClick={onExit}
-            icon={<RotateCcw className="h-4 w-4" />}
-          >
-            Back to Games
-          </Button>
-          <Button
-            variant="primary"
-            onClick={() => window.location.reload()}
-            icon={<Zap className="h-4 w-4" />}
-          >
-            Play Again
-          </Button>
+          {/* Performance Message */}
+          <div className="text-center p-4 rounded-lg bg-gradient-to-r from-primary-50 to-accent-50 border border-primary-200">
+            <p className="text-foreground font-medium">
+              {result.accuracy >= 90 
+                ? "Outstanding performance! You've mastered this topic!" 
+                : result.accuracy >= 70 
+                ? "Great job! You have a solid understanding of the material."
+                : result.accuracy >= 50 
+                ? "Good effort! Review the explanations and try again to improve."
+                : "Keep practicing! Review the material and take the quiz again."}
+            </p>
+            {result.accuracy < 70 && (
+              <p className="text-muted-foreground text-sm mt-2">
+                Focus on the questions you got wrong and their explanations above.
+              </p>
+            )}
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row justify-center gap-3">
+            <Button
+              variant="outline"
+              onClick={onExit}
+              icon={<RotateCcw className="h-4 w-4" />}
+              className="flex-1 sm:flex-none"
+            >
+              Back to Games
+            </Button>
+            
+            <Button
+              variant="primary"
+              onClick={() => window.location.reload()}
+              icon={<Zap className="h-4 w-4" />}
+              className="flex-1 sm:flex-none"
+            >
+              {result.accuracy >= 90 ? 'Try Another Quiz' : 'Retake Quiz'}
+            </Button>
+            
+            {result.accuracy < 70 && (
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  // Scroll to detailed results
+                  const resultsSection = document.querySelector('[data-results-section]');
+                  if (resultsSection) {
+                    resultsSection.scrollIntoView({ behavior: 'smooth' });
+                  }
+                }}
+                icon={<Target className="h-4 w-4" />}
+                className="flex-1 sm:flex-none"
+              >
+                Review Answers
+              </Button>
+            )}
+          </div>
+
+          {/* Study Suggestions */}
+          {result.accuracy < 80 && (
+            <div className="text-center text-sm text-muted-foreground">
+              <p>💡 <strong>Study Tip:</strong> Review the explanations for incorrect answers to improve your understanding.</p>
+            </div>
+          )}
         </motion.div>
       </motion.div>
     );

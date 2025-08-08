@@ -4,15 +4,16 @@
 export const FREE_MODELS = {
   // DeepSeek Models (Recommended for coding and reasoning)
   DEEPSEEK_R1: 'deepseek/deepseek-r1:free',
-  DEEPSEEK_V3: 'deepseek/deepseek-v3:free', 
+  DEEPSEEK_V3: 'deepseek/deepseek-chat-v3-0324:free', // Fixed: correct model ID
   DEEPSEEK_R1_DISTILL_QWEN_14B: 'deepseek/deepseek-r1-distill-qwen-14b:free',
   DEEPSEEK_R1_DISTILL_LLAMA_70B: 'deepseek/deepseek-r1-distill-llama-70b:free',
-  DEEPSEEK_R1_QWEN3_8B: 'deepseek/deepseek-r1-0528-qwen3-8b:free',
 
   // Qwen Models (Good for general tasks)
   QWEN3_14B: 'qwen/qwen3-14b:free',
-  QWEN3_3_5B: 'qwen/qwen3-3.5b:free',
-  QWEN3_235B: 'qwen/qwen3-235b-a22b-07-25:free',
+  QWEN3_4B: 'qwen/qwen3-4b:free',
+
+  // Meta Models
+  LLAMA_4_SCOUT: 'meta-llama/llama-4-scout:free',
 
   // Other free models
   // Add more as they become available
@@ -30,7 +31,7 @@ export const MODEL_INFO = {
     limitations: ['Rate limited to ~50 requests/day']
   },
   [FREE_MODELS.DEEPSEEK_V3]: {
-    name: 'DeepSeek V3',
+    name: 'DeepSeek V3 0324',
     description: 'General purpose model with good performance',
     strengths: ['General conversation', 'Content generation', 'Analysis'],
     limitations: ['Rate limited']
@@ -41,11 +42,17 @@ export const MODEL_INFO = {
     strengths: ['Multilingual support', 'General tasks', 'Reasoning'],
     limitations: ['Rate limited']
   },
-  [FREE_MODELS.QWEN3_3_5B]: {
-    name: 'Qwen3 3.5B',
+  [FREE_MODELS.QWEN3_4B]: {
+    name: 'Qwen3 4B',
     description: 'Smaller, faster model for simple tasks',
     strengths: ['Fast responses', 'Simple queries', 'Low resource usage'],
     limitations: ['Less capable than larger models', 'Rate limited']
+  },
+  [FREE_MODELS.LLAMA_4_SCOUT]: {
+    name: 'Llama 4 Scout',
+    description: 'Meta\'s latest model for general tasks',
+    strengths: ['General conversation', 'Content generation', 'Analysis'],
+    limitations: ['Rate limited']
   }
 };
 

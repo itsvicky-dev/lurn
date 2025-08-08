@@ -461,7 +461,7 @@ const ChatPage: React.FC = () => {
               <div className="space-y-3">
                 <button
                   onClick={handleCreateNewSession}
-                  className="btn btn-primary"
+                  className="btn btn-primary p-2"
                 >
                   <Plus className="h-5 w-5 mr-2" />
                   Start New Chat

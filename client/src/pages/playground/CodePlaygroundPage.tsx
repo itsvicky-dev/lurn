@@ -15,7 +15,10 @@ import {
   FileText,
   ChevronDown,
   Maximize2,
-  Minimize2
+  Minimize2,
+  Edit3,
+  Check,
+  X
 } from 'lucide-react';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import toast from 'react-hot-toast';
@@ -67,18 +70,28 @@ const CodePlaygroundPage: React.FC = () => {
     loading: boolean;
   }>({ type: null, content: '', loading: false });
   const [systemStatus, setSystemStatus] = useState<any>(null);
+  const [editingPlaygroundId, setEditingPlaygroundId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState<string>('');
 
   const handleCreatePlayground = async (templateType?: string) => {
     try {
       const playground = createPlayground(selectedLanguage);
       
-      // Load template if specified
-      if (templateType && templateType !== 'empty') {
+      // Handle empty playground or load template
+      if (!templateType || templateType === 'empty') {
+        // Create empty playground - clear the default code
+        updatePlayground(playground.id, { code: '' });
+      } else {
+        // Load specific template
         try {
           const { template } = await apiService.getCodeTemplate(selectedLanguage, templateType);
           updatePlayground(playground.id, { code: template });
+          toast.success(`${templateType.charAt(0).toUpperCase() + templateType.slice(1)} template loaded`);
         } catch (error) {
           console.error('Failed to load template:', error);
+          toast.error(`Failed to load ${templateType} template. Using empty playground instead.`);
+          // If template loading fails, clear the code for empty playground
+          updatePlayground(playground.id, { code: '' });
         }
       }
       
@@ -240,6 +253,25 @@ const CodePlaygroundPage: React.FC = () => {
     }
   };
 
+  const handleStartRename = (playground: CodePlayground) => {
+    setEditingPlaygroundId(playground.id);
+    setEditingName(playground.name || `${playground.language} Playground`);
+  };
+
+  const handleSaveRename = () => {
+    if (editingPlaygroundId && editingName.trim()) {
+      updatePlayground(editingPlaygroundId, { name: editingName.trim() });
+      toast.success('Playground renamed successfully');
+    }
+    setEditingPlaygroundId(null);
+    setEditingName('');
+  };
+
+  const handleCancelRename = () => {
+    setEditingPlaygroundId(null);
+    setEditingName('');
+  };
+
   const getErrorMessage = (error: any) => {
     if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
       return {
@@ -273,14 +305,7 @@ const CodePlaygroundPage: React.FC = () => {
     }
   }, [currentPlayground?.language]);
 
-  React.useEffect(() => {
-    if (!loading && !currentPlayground && playgrounds.length === 0) {
-      const timer = setTimeout(() => {
-        handleCreatePlayground();
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [loading, currentPlayground, playgrounds.length]);
+  // Removed auto-creation of playground - user should manually create one
 
   return (
     <div className={`flex ${isFullscreen ? 'fixed inset-0 z-50 h-screen' : 'h-[calc(100vh-180px)]'} bg-background`}>
@@ -316,9 +341,44 @@ const CodePlaygroundPage: React.FC = () => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center space-x-2 mb-1">
                         <Code className="h-4 w-4 text-primary-600" />
-                        <h3 className="text-sm font-medium text-card-foreground truncate">
-                          {playground.name || `${playground.language} Playground`}
-                        </h3>
+                        {editingPlaygroundId === playground.id ? (
+                          <div className="flex items-center space-x-2 flex-1">
+                            <input
+                              type="text"
+                              value={editingName}
+                              onChange={(e) => setEditingName(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleSaveRename();
+                                if (e.key === 'Escape') handleCancelRename();
+                              }}
+                              className="flex-1 text-sm font-medium bg-background border border-border rounded px-2 py-1 text-card-foreground"
+                              autoFocus
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSaveRename();
+                              }}
+                              className="p-1 text-green-600 hover:text-green-700"
+                            >
+                              <Check className="h-3 w-3" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCancelRename();
+                              }}
+                              className="p-1 text-red-600 hover:text-red-700"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ) : (
+                          <h3 className="text-sm font-medium text-card-foreground truncate">
+                            {playground.name || `${playground.language} Playground`}
+                          </h3>
+                        )}
                       </div>
                       <p className="text-xs text-muted-foreground">
                         {supportedLanguages.find(lang => lang.id === playground.language)?.name || playground.language}
@@ -334,15 +394,30 @@ const CodePlaygroundPage: React.FC = () => {
                       {supportedLanguages.find(lang => lang.id === playground.language)?.runnable && (
                         <div className="w-2 h-2 bg-green-500 rounded-full" title="Runnable"></div>
                       )}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deletePlayground(playground.id);
-                        }}
-                        className="opacity-0 group-hover:opacity-100 p-1 text-muted-foreground hover:text-red-600 transition-opacity"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </button>
+                      {editingPlaygroundId !== playground.id && (
+                        <>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleStartRename(playground);
+                            }}
+                            className="opacity-0 group-hover:opacity-100 p-1 text-muted-foreground hover:text-blue-600 transition-opacity"
+                            title="Rename playground"
+                          >
+                            <Edit3 className="h-3 w-3" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deletePlayground(playground.id);
+                            }}
+                            className="opacity-0 group-hover:opacity-100 p-1 text-muted-foreground hover:text-red-600 transition-opacity"
+                            title="Delete playground"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -375,7 +450,7 @@ const CodePlaygroundPage: React.FC = () => {
             </button>
             
             {showLanguageDropdown && (
-              <div className="absolute top-full left-0 mt-1 bg-card border border-border rounded-lg shadow-lg z-10 min-w-[200px]">
+              <div className="absolute top-full left-0 mt-1 bg-card border border-border rounded-lg shadow-lg z-10 min-w-[200px] max-h-60 overflow-y-auto">
                 {supportedLanguages.map((language) => (
                   <button
                     key={language.id}
@@ -426,10 +501,10 @@ const CodePlaygroundPage: React.FC = () => {
             </button>
             
             {showTemplateDropdown && (
-              <div className="absolute top-full left-0 mt-1 bg-card border border-border rounded-lg shadow-lg z-10 min-w-[200px]">
+              <div className="absolute top-full left-0 mt-1 bg-card border border-border rounded-lg shadow-lg z-10 min-w-[200px] max-h-60 overflow-y-auto">
                 <button
                   onClick={() => {
-                    handleCreatePlayground();
+                    handleCreatePlayground('empty');
                     setShowTemplateDropdown(false);
                   }}
                   className="w-full text-left px-3 py-2 hover:bg-accent first:rounded-t-lg"
@@ -742,8 +817,8 @@ const CodePlaygroundPage: React.FC = () => {
                 Create a new playground to get started.
               </p>
               <button
-                onClick={() => handleCreatePlayground()}
-                className="btn btn-primary"
+                onClick={() => handleCreatePlayground('empty')}
+                className="btn btn-primary p-2"
               >
                 <Plus className="h-5 w-5 mr-2" />
                 Create Playground

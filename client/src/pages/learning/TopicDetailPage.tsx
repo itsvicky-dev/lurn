@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useLearning } from '../../contexts/LearningContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { Topic, QuizResult } from '../../types';
+import EnhancedQuizGame from '../../components/games/EnhancedQuizGame';
 import apiService from '../../services/api';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import EnhancedLoadingSpinner from '../../components/ui/EnhancedLoadingSpinner';
@@ -227,18 +228,16 @@ const TopicDetailPage: React.FC = () => {
     }
   };
 
-  const handleQuizSubmit = async () => {
-    if (!topic || !topic.quiz) return;
+  const handleQuizComplete = async (result: QuizResult) => {
+    if (!topic) return;
 
     try {
-      const result = await apiService.submitQuiz(topic.id, quizAnswers);
+      // Submit quiz result to API
+      await apiService.submitQuiz(topic.id, result.results.map(r => r.userAnswer));
       setQuizResult(result);
       
       if (result.passed) {
-        toast.success('Quiz passed! Great job!');
         await handleCompleteTopic();
-      } else {
-        toast.error('Quiz not passed. Review the material and try again.');
       }
     } catch (error) {
       console.error('Failed to submit quiz:', error);
@@ -779,7 +778,7 @@ const TopicDetailPage: React.FC = () => {
                       <Award className="h-5 w-5 text-primary-600" />
                       <h3 className="card-title">Knowledge Check</h3>
                     </div>
-                    {!showQuiz && (
+                    {!showQuiz && !quizResult && (
                       <button
                         onClick={() => setShowQuiz(true)}
                         className="btn-primary btn-sm"
@@ -787,107 +786,63 @@ const TopicDetailPage: React.FC = () => {
                         Take Quiz
                       </button>
                     )}
+                    {quizResult && (
+                      <button
+                        onClick={() => {
+                          setShowQuiz(true);
+                          setQuizResult(null);
+                          setQuizAnswers(new Array(topic.quiz.questions.length).fill(''));
+                        }}
+                        className="btn-secondary btn-sm"
+                      >
+                        Retake Quiz
+                      </button>
+                    )}
                   </div>
                 </div>
                 
-                {showQuiz && (
-                  <div className="card-content space-y-6">
-                    {topic.quiz.questions.map((question, qIndex) => (
-                      <div key={qIndex} className="space-y-3">
-                        <h4 className="font-medium text-foreground">
-                          {qIndex + 1}. {question.question}
-                        </h4>
-                        
-                        {question.type === 'multiple_choice' && question.options && (
-                          <div className="space-y-2">
-                            {question.options.map((option, oIndex) => (
-                              <label key={oIndex} className="flex items-center space-x-2">
-                                <input
-                                  type="radio"
-                                  name={`question-${qIndex}`}
-                                  value={option}
-                                  checked={quizAnswers[qIndex] === option}
-                                  onChange={(e) => {
-                                    const newAnswers = [...quizAnswers];
-                                    newAnswers[qIndex] = e.target.value;
-                                    setQuizAnswers(newAnswers);
-                                  }}
-                                  className="text-primary-600"
-                                />
-                                <span className="text-foreground">{option}</span>
-                              </label>
-                            ))}
-                          </div>
-                        )}
-                        
-                        {question.type === 'short_answer' && (
-                          <input
-                            type="text"
-                            value={quizAnswers[qIndex] || ''}
-                            onChange={(e) => {
-                              const newAnswers = [...quizAnswers];
-                              newAnswers[qIndex] = e.target.value;
-                              setQuizAnswers(newAnswers);
-                            }}
-                            className="input"
-                            placeholder="Enter your answer..."
-                          />
-                        )}
-                        
-                        {quizResult && (
-                          <div className={`p-3 rounded-lg ${
-                            quizResult.results[qIndex]?.isCorrect 
-                              ? 'bg-success-50 border border-success-200' 
-                              : 'bg-error-50 border border-error-200'
-                          }`}>
-                            <p className={`font-medium ${
-                              quizResult.results[qIndex]?.isCorrect 
-                                ? 'text-success-800' 
-                                : 'text-error-800'
-                            }`}>
-                              {quizResult.results[qIndex]?.isCorrect ? 'Correct!' : 'Incorrect'}
-                            </p>
-                            {quizResult.results[qIndex]?.explanation && (
-                              <p className="text-sm text-gray-600 mt-1">
-                                {quizResult.results[qIndex].explanation}
-                              </p>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                    
-                    {!quizResult && (
-                      <button
-                        onClick={handleQuizSubmit}
-                        disabled={quizAnswers.some(answer => !answer)}
-                        className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Submit Quiz
-                      </button>
-                    )}
-                    
-                    {quizResult && (
-                      <div className={`p-4 rounded-lg ${
-                        quizResult.passed 
-                          ? 'bg-success-50 border border-success-200' 
-                          : 'bg-error-50 border border-error-200'
+                {showQuiz && !quizResult && (
+                  <div className="card-content">
+                    <EnhancedQuizGame
+                      quiz={topic.quiz}
+                      title="Knowledge Check"
+                      description={`Test your understanding of ${topic.title}`}
+                      timeLimit={300} // 5 minutes
+                      onComplete={async (result) => {
+                        await handleQuizComplete(result);
+                        setShowQuiz(false);
+                        if (result.passed) {
+                          toast.success('Quiz passed! Great job!');
+                        } else {
+                          toast.error('Quiz not passed. Review the material and try again.');
+                        }
+                      }}
+                      onExit={() => setShowQuiz(false)}
+                    />
+                  </div>
+                )}
+
+                {quizResult && !showQuiz && (
+                  <div className="card-content">
+                    <div className={`p-4 rounded-lg ${
+                      quizResult.passed 
+                        ? 'bg-success-50 border border-success-200' 
+                        : 'bg-error-50 border border-error-200'
+                    }`}>
+                      <h4 className={`font-medium ${
+                        quizResult.passed ? 'text-success-800' : 'text-error-800'
                       }`}>
-                        <h4 className={`font-medium ${
-                          quizResult.passed ? 'text-success-800' : 'text-error-800'
-                        }`}>
-                          Quiz {quizResult.passed ? 'Passed' : 'Failed'}
-                        </h4>
-                        <p className="text-sm text-gray-600 mt-1">
-                          Score: {quizResult.score}% ({quizResult.correctAnswers}/{quizResult.totalQuestions} correct)
+                        Quiz {quizResult.passed ? 'Passed' : 'Failed'}
+                      </h4>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Score: {quizResult.score}% ({quizResult.correctAnswers}/{quizResult.totalQuestions} correct)
+                      </p>
+                      {!quizResult.passed && (
+                        <p className="text-sm text-gray-600 mt-2">
+                          Review the material and try again to complete this topic.
                         </p>
-                        {!quizResult.passed && (
-                          <p className="text-sm text-gray-600 mt-2">
-                            Review the material and try again to complete this topic.
-                          </p>
-                        )}
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 )}
               </div>

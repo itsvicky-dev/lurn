@@ -49,9 +49,13 @@ class AIService {
     this.fallbackModels = [
       FREE_MODELS.QWEN3_14B,        // Try Qwen first - better for structured output
       FREE_MODELS.DEEPSEEK_V3,      // Then DeepSeek V3 - more stable than R1
-      FREE_MODELS.QWEN3_3_5B,       // Smaller but faster
+      FREE_MODELS.LLAMA_4_SCOUT,    // Meta's latest model
+      FREE_MODELS.QWEN3_4B,         // Smaller but faster
       FREE_MODELS.DEEPSEEK_R1       // R1 last due to reasoning format issues
     ];
+    
+    // Rate limit tracking
+    this.rateLimitedModels = new Map(); // Track which models are rate limited and when
     
     // Validate API key
     if (!this.apiKey) {
@@ -92,6 +96,8 @@ class AIService {
     }
   }
 
+
+
   async generateCompletion(messages, options = {}) {
     // Validate inputs
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
@@ -103,12 +109,18 @@ class AIService {
     try {
       return await this._attemptCompletion(messages, modelToUse, options);
     } catch (error) {
-      // If rate limited or model unavailable, try fallback models
-      if (error.response?.status === 429 || error.response?.status === 503) {
-        console.log(`Model ${modelToUse} rate limited or unavailable, trying fallback models...`);
+      // If rate limited, model unavailable, or invalid model ID, try fallback models
+      if (error.response?.status === 429 || error.response?.status === 503 || error.response?.status === 400) {
+        console.log(`Model ${modelToUse} failed (${error.response?.status}), trying fallback models...`);
         
         for (const fallbackModel of this.fallbackModels) {
           if (fallbackModel !== modelToUse) {
+            // Skip models that are known to be rate limited
+            if (this.isModelRateLimited(fallbackModel)) {
+              console.log(`Skipping ${fallbackModel} - recently rate limited`);
+              continue;
+            }
+            
             try {
               console.log(`Trying fallback model: ${fallbackModel}`);
               return await this._attemptCompletion(messages, fallbackModel, options);
@@ -119,7 +131,23 @@ class AIService {
           }
         }
         
-        throw new Error('All free models are currently rate limited. Please try again later.');
+        // Provide detailed guidance for rate limit issues
+        const availableModels = this.getAvailableModels();
+        const rateLimitedModels = Array.from(this.rateLimitedModels.keys());
+        
+        const rateLimitMessage = `All free models are currently rate limited or unavailable. This is common with free models during peak usage.
+
+Possible solutions:
+1. Wait a few minutes and try again (rate limits reset periodically)
+2. Try again during off-peak hours (early morning or late evening)
+3. Add credits to your OpenRouter account for more reliable access
+4. Use a different OpenRouter API key if you have one
+
+Models attempted: ${[modelToUse, ...this.fallbackModels.filter(m => m !== modelToUse)].join(', ')}
+Currently rate limited: ${rateLimitedModels.length > 0 ? rateLimitedModels.join(', ') : 'None tracked'}
+Available models: ${availableModels.length > 0 ? availableModels.join(', ') : 'None currently available'}`;
+        
+        throw new Error(rateLimitMessage);
       }
       
       throw error;
@@ -192,10 +220,20 @@ class AIService {
       
       if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
         throw new Error(`AI generation timeout: The model took too long to respond. This can happen with free models during high demand. Please try again in a few minutes.`);
+      } else if (error.response?.status === 400) {
+        const errorData = error.response?.data;
+        if (errorData?.error?.message?.includes('not a valid model ID')) {
+          throw new Error(`Invalid model ID: ${model}. This model may no longer be available on OpenRouter.`);
+        }
+        throw new Error(`Bad request: ${errorData?.error?.message || error.message}`);
       } else if (error.response?.status === 401) {
         throw new Error('AI service authentication failed: Invalid API key');
       } else if (error.response?.status === 429) {
         const errorData = error.response?.data;
+        
+        // Track rate limited model
+        this.markModelAsRateLimited(model);
+        
         if (errorData?.error?.message?.includes('quota')) {
           throw new Error(`Daily quota exceeded for free models. Please try again tomorrow or upgrade your OpenRouter account.`);
         } else if (errorData?.error?.message?.includes('rate limit')) {
@@ -1077,11 +1115,16 @@ Format your response with clear sections and specific examples.`;
 
   // Utility methods for free model management
   getAvailableFreeModels() {
-    return Object.entries(FREE_MODELS).map(([key, value]) => ({
-      key,
-      model: value,
-      info: getModelInfo(value)
-    }));
+    return {
+      default: this.defaultModel,
+      fallbacks: this.fallbackModels,
+      all: Object.values(FREE_MODELS),
+      detailed: Object.entries(FREE_MODELS).map(([key, value]) => ({
+        key,
+        model: value,
+        info: getModelInfo(value)
+      }))
+    };
   }
 
   getCurrentModel() {
@@ -1105,6 +1148,52 @@ Format your response with clear sections and specific examples.`;
     const randomModel = getRandomFreeModel();
     console.log(`Selected random model: ${randomModel}`);
     return randomModel;
+  }
+
+  // Rate limit management methods
+  markModelAsRateLimited(model) {
+    const now = Date.now();
+    this.rateLimitedModels.set(model, now);
+    console.log(`🚫 Marked ${model} as rate limited at ${new Date(now).toISOString()}`);
+  }
+
+  isModelRateLimited(model) {
+    const rateLimitTime = this.rateLimitedModels.get(model);
+    if (!rateLimitTime) return false;
+    
+    // Consider model available again after 10 minutes
+    const tenMinutes = 10 * 60 * 1000;
+    const isStillLimited = (Date.now() - rateLimitTime) < tenMinutes;
+    
+    if (!isStillLimited) {
+      this.rateLimitedModels.delete(model);
+      console.log(`✅ ${model} rate limit expired, marking as available`);
+    }
+    
+    return isStillLimited;
+  }
+
+  getAvailableModels() {
+    const allModels = [this.defaultModel, ...this.fallbackModels];
+    return allModels.filter(model => !this.isModelRateLimited(model));
+  }
+
+  // Check if we can make requests (basic connectivity test)
+  async checkServiceHealth() {
+    try {
+      const response = await this.client.get('/models', { timeout: 5000 });
+      return {
+        status: 'healthy',
+        modelsAvailable: response.data?.data?.length || 0,
+        message: 'OpenRouter API is accessible'
+      };
+    } catch (error) {
+      return {
+        status: 'unhealthy',
+        error: error.message,
+        message: 'Cannot connect to OpenRouter API'
+      };
+    }
   }
 }
 

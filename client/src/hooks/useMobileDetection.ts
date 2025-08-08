@@ -11,7 +11,22 @@ export const useMobileDetection = (): MobileDetectionResult => {
   // Initialize with localStorage value to prevent flash
   const [isDesktopView, setIsDesktopView] = useState(() => {
     try {
-      return localStorage.getItem('forceDesktopView') === 'true';
+      // Check if user has manually enabled desktop view
+      if (localStorage.getItem('forceDesktopView') === 'true') {
+        return true;
+      }
+      
+      // Check if browser is in desktop mode (wider viewport on mobile device)
+      const userAgent = navigator.userAgent.toLowerCase();
+      const isMobileDevice = ['android', 'webos', 'iphone', 'ipad', 'ipod', 'blackberry', 'windows phone', 'mobile']
+        .some(keyword => userAgent.includes(keyword));
+      
+      // If it's a mobile device but has a wide viewport, likely desktop mode is enabled
+      if (isMobileDevice && window.innerWidth > 1024) {
+        return true;
+      }
+      
+      return false;
     } catch {
       return false;
     }
@@ -36,7 +51,7 @@ export const useMobileDetection = (): MobileDetectionResult => {
   });
 
   useEffect(() => {
-    const checkMobile = () => {
+    const checkMobileAndDesktopMode = () => {
       const userAgent = navigator.userAgent.toLowerCase();
       const mobileKeywords = [
         'android', 'webos', 'iphone', 'ipad', 'ipod', 
@@ -51,19 +66,26 @@ export const useMobileDetection = (): MobileDetectionResult => {
       const isSmallScreen = window.innerWidth <= 1024;
       
       setIsMobile(isMobileDevice || isSmallScreen);
+      
+      // Check if mobile device is in desktop mode (wide viewport)
+      if (isMobileDevice && window.innerWidth > 1024 && !localStorage.getItem('forceDesktopView')) {
+        setIsDesktopView(true);
+      } else if (isMobileDevice && window.innerWidth <= 1024 && !localStorage.getItem('forceDesktopView')) {
+        setIsDesktopView(false);
+      }
     };
 
     // Check on resize with debounce
     let timeoutId: NodeJS.Timeout;
-    const debouncedCheckMobile = () => {
+    const debouncedCheck = () => {
       clearTimeout(timeoutId);
-      timeoutId = setTimeout(checkMobile, 100);
+      timeoutId = setTimeout(checkMobileAndDesktopMode, 100);
     };
 
-    window.addEventListener('resize', debouncedCheckMobile);
+    window.addEventListener('resize', debouncedCheck);
 
     return () => {
-      window.removeEventListener('resize', debouncedCheckMobile);
+      window.removeEventListener('resize', debouncedCheck);
       clearTimeout(timeoutId);
     };
   }, []);

@@ -1,11 +1,7 @@
 import React from 'react';
 import { Monitor, Smartphone } from 'lucide-react';
 
-interface MobileMessageProps {
-  onEnableDesktopView: () => void;
-}
-
-const MobileMessage: React.FC<MobileMessageProps> = ({ onEnableDesktopView }) => {
+const MobileMessage: React.FC = () => {
   return (
     <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-6">
       <div className="max-w-md w-full text-center space-y-6">
@@ -34,19 +30,14 @@ const MobileMessage: React.FC<MobileMessageProps> = ({ onEnableDesktopView }) =>
           </p>
         </div>
 
-        {/* Desktop View Button */}
+        {/* Instructions for Desktop View */}
         <div className="space-y-4">
-          <div
-            // onClick={onEnableDesktopView}
-            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
-          >
-            <Monitor className="w-5 h-5" />
-            Enable Desktop View
+          <div className="p-4 flex items-center justify-center">
+            <div className="flex items-center gap-2 mb-2 center">
+              <Monitor className="w-5 h-5 text-primary" />
+              <h3 className="font-medium text-card-foreground">Enable Desktop View</h3>
+            </div>
           </div>
-          
-          <p className="text-xs text-muted-foreground">
-            Note: Desktop view on mobile may not be fully optimized and some features might not work as expected.
-          </p>
         </div>
 
         {/* Progress Indicator */}

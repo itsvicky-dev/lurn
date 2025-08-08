@@ -127,7 +127,7 @@ const AppRoutes: React.FC = () => {
 };
 
 const AppContent: React.FC = () => {
-  const { isMobile, isDesktopView, enableDesktopView, disableDesktopView } = useMobileDetection();
+  const { isMobile, isDesktopView, disableDesktopView } = useMobileDetection();
 
   // Debug logging
   console.log('AppContent render:', { isMobile, isDesktopView });
@@ -140,7 +140,7 @@ const AppContent: React.FC = () => {
   // Show mobile message if user is on mobile and hasn't enabled desktop view
   if (isMobile && !isDesktopView) {
     console.log('Showing mobile message');
-    return <MobileMessage onEnableDesktopView={enableDesktopView} />;
+    return <MobileMessage />;
   }
 
   console.log('Showing full app');

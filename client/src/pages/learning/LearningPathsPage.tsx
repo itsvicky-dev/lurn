@@ -264,7 +264,7 @@ const LearningPathsPage: React.FC = () => {
                   No learning paths yet
                 </h3>
                 <p className="text-muted-foreground mb-6">
-                  Create your first learning path to start your journey with AI Tutor
+                  Create your first learning path to start your journey with Lurn
                 </p>
               </>
             ) : (

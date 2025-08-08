@@ -106,7 +106,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       // Add welcome notification
       addNotification({
         type: 'info',
-        title: 'Welcome to AI Tutor!',
+        title: 'Welcome to Lurn!',
         message: 'Your personalized learning journey starts here. Complete your first topic to get started.',
         actionUrl: '/learning'
       });

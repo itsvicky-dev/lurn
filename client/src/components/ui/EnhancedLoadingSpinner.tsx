@@ -132,7 +132,7 @@ const EnhancedLoadingSpinner: React.FC<EnhancedLoadingSpinnerProps> = ({
       "Your learning adventure is loading... please wait for magic! ✨",
       "The AI is having deep philosophical thoughts about you! 🤔",
       "Creating your personal knowledge empire! 👑",
-      "Your AI tutor is practicing its best teaching moves! 💃",
+      "Lurn is practicing its best teaching moves! 💃",
       "Patience, young padawan... greatness is loading! ⏰",
       "The AI is channeling its inner teaching genius! 🎭",
       "Building bridges to your brilliant future! 🌉",

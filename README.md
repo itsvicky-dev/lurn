@@ -1,4 +1,4 @@
-# AI Tutor - Full-Stack Learning Platform
+# Lurn - Full-Stack Learning Platform
 
 A comprehensive AI-powered tutoring platform built with React, Node.js, MongoDB, and OpenRouter API integration.
 

@@ -159,7 +159,7 @@ const OnboardingPage: React.FC = () => {
       }
       
       // Show success messages
-      toast.success('🎉 Welcome to AI Tutor! Your account is set up.');
+      toast.success('🎉 Welcome to Lurn! Your account is set up.');
       
       if (backgroundTasks.length > 0) {
         toast(`🚀 ${backgroundTasks.length} learning path${backgroundTasks.length > 1 ? 's' : ''} queued for creation. You'll be notified when they're ready!`, {
@@ -313,7 +313,7 @@ const OnboardingPage: React.FC = () => {
           <div className="space-y-6">
             <div className="text-center">
               <h2 className="text-2xl font-bold text-foreground">Choose your tutor personality</h2>
-              <p className="mt-2 text-muted-foreground">How would you like your AI tutor to interact with you?</p>
+              <p className="mt-2 text-muted-foreground">How would you like your Lurn to interact with you?</p>
             </div>
             <div className="space-y-3">
               {TUTOR_PERSONALITIES.map((personality) => (
@@ -406,7 +406,7 @@ const OnboardingPage: React.FC = () => {
           <div className="flex justify-center mb-4">
             <div className="flex items-center space-x-2">
               <BookOpen className="h-10 w-10 text-primary" />
-              <h1 className="text-3xl font-bold gradient-text">AI Tutor</h1>
+              <h1 className="text-3xl font-bold gradient-text">Lurn</h1>
             </div>
           </div>
           <h2 className="text-xl text-muted-foreground">

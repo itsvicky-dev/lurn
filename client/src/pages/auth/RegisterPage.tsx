@@ -85,7 +85,7 @@ const RegisterPage: React.FC = () => {
           <div className="flex justify-center">
             <div className="flex items-center space-x-2">
               <BookOpen className="h-10 w-10 text-primary" />
-              <h1 className="text-3xl font-bold gradient-text">AI Tutor</h1>
+              <h1 className="text-3xl font-bold gradient-text">Lurn</h1>
             </div>
           </div>
           <h2 className="mt-6 text-3xl font-extrabold text-foreground">

@@ -418,7 +418,7 @@ const DashboardPage: React.FC = () => {
               >
                 <MessageCircle className="h-5 w-5 text-primary-600 dark:text-primary-400 mr-3" />
                 <div>
-                  <div className="font-medium text-card-foreground">Ask AI Tutor</div>
+                  <div className="font-medium text-card-foreground">Ask Lurn</div>
                   <div className="text-sm text-muted-foreground">Get instant help</div>
                 </div>
               </Link>

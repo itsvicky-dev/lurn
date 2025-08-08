@@ -60,7 +60,7 @@ const LoginPage: React.FC = () => {
           <div className="flex justify-center">
             <div className="flex items-center space-x-2">
               <BookOpen className="h-10 w-10 text-primary" />
-              <h1 className="text-3xl font-bold gradient-text">AI Tutor</h1>
+              <h1 className="text-3xl font-bold gradient-text">Lurn</h1>
             </div>
           </div>
           <h2 className="mt-6 text-3xl font-extrabold text-foreground">
@@ -169,7 +169,7 @@ const LoginPage: React.FC = () => {
               <div className="w-full border-t border-border" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-background text-muted-foreground">New to AI Tutor?</span>
+              <span className="px-2 bg-background text-muted-foreground">New to Lurn?</span>
             </div>
           </div>
 

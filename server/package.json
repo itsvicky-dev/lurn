@@ -1,7 +1,7 @@
 {
   "name": "ai-tutor-server",
   "version": "1.0.0",
-  "description": "AI Tutor Backend Server",
+  "description": "Lurn Backend Server",
   "main": "src/index.js",
   "type": "module",
   "scripts": {

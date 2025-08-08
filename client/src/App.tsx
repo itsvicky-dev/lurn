@@ -10,8 +10,14 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { LayoutProvider } from './contexts/LayoutContext';
 
+// Hooks
+import { useMobileDetection } from './hooks/useMobileDetection';
+
 // Components
 import LoadingSpinner from './components/ui/LoadingSpinner';
+import MobileMessage from './components/ui/MobileMessage';
+import MobileViewToggle from './components/ui/MobileViewToggle';
+import MobileDetectionTest from './components/ui/MobileDetectionTest';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import PublicRoute from './components/auth/PublicRoute';
 
@@ -120,6 +126,93 @@ const AppRoutes: React.FC = () => {
   );
 };
 
+const AppContent: React.FC = () => {
+  const { isMobile, isDesktopView, enableDesktopView, disableDesktopView } = useMobileDetection();
+
+  // Debug logging
+  console.log('AppContent render:', { isMobile, isDesktopView });
+
+  // Temporary: Show test component if URL contains ?test=mobile
+  if (window.location.search.includes('test=mobile')) {
+    return <MobileDetectionTest />;
+  }
+
+  // Show mobile message if user is on mobile and hasn't enabled desktop view
+  if (isMobile && !isDesktopView) {
+    console.log('Showing mobile message');
+    return <MobileMessage onEnableDesktopView={enableDesktopView} />;
+  }
+
+  console.log('Showing full app');
+
+  // Show the full app for desktop users or mobile users who enabled desktop view
+  return (
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-300 cyber-grid">
+      <AppRoutes />
+      <BackgroundTaskIndicator />
+      
+      {/* Show mobile view toggle if user is on mobile but using desktop view */}
+      {isMobile && isDesktopView && (
+        <MobileViewToggle onDisableDesktopView={disableDesktopView} />
+      )}
+      
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          className: 'font-robotic',
+          style: {
+            background: 'hsl(var(--card))',
+            color: 'hsl(var(--card-foreground))',
+            border: '1px solid hsl(var(--border))',
+            borderRadius: '12px',
+            boxShadow: '0 0 20px hsl(var(--primary) / 0.2)',
+            backdropFilter: 'blur(8px)',
+          },
+          success: {
+            duration: 3000,
+            iconTheme: {
+              primary: 'hsl(var(--primary))',
+              secondary: 'hsl(var(--primary-foreground))',
+            },
+            style: {
+              background: 'hsl(var(--card))',
+              color: 'hsl(var(--card-foreground))',
+              border: '1px solid hsl(var(--primary) / 0.3)',
+              boxShadow: '0 0 20px hsl(var(--primary) / 0.2)',
+            },
+          },
+          error: {
+            duration: 5000,
+            iconTheme: {
+              primary: 'hsl(var(--destructive))',
+              secondary: 'hsl(var(--destructive-foreground))',
+            },
+            style: {
+              background: 'hsl(var(--card))',
+              color: 'hsl(var(--card-foreground))',
+              border: '1px solid hsl(var(--destructive) / 0.3)',
+              boxShadow: '0 0 20px hsl(var(--destructive) / 0.2)',
+            },
+          },
+          loading: {
+            iconTheme: {
+              primary: 'hsl(var(--primary))',
+              secondary: 'hsl(var(--primary-foreground))',
+            },
+            style: {
+              background: 'hsl(var(--card))',
+              color: 'hsl(var(--card-foreground))',
+              border: '1px solid hsl(var(--primary) / 0.3)',
+              boxShadow: '0 0 20px hsl(var(--primary) / 0.2)',
+            },
+          },
+        }}
+      />
+    </div>
+  );
+};
+
 const App: React.FC = () => {
   return (
     <ErrorBoundary>
@@ -132,63 +225,7 @@ const App: React.FC = () => {
                   <ChatProvider>
                     <CodePlaygroundProvider>
                       <GameProvider>
-                  <div className="min-h-screen bg-background text-foreground transition-colors duration-300 cyber-grid">
-                    <AppRoutes />
-                    <BackgroundTaskIndicator />
-                    <Toaster
-                    position="top-right"
-                    toastOptions={{
-                      duration: 4000,
-                      className: 'font-robotic',
-                      style: {
-                        background: 'hsl(var(--card))',
-                        color: 'hsl(var(--card-foreground))',
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '12px',
-                        boxShadow: '0 0 20px hsl(var(--primary) / 0.2)',
-                        backdropFilter: 'blur(8px)',
-                      },
-                      success: {
-                        duration: 3000,
-                        iconTheme: {
-                          primary: 'hsl(var(--primary))',
-                          secondary: 'hsl(var(--primary-foreground))',
-                        },
-                        style: {
-                          background: 'hsl(var(--card))',
-                          color: 'hsl(var(--card-foreground))',
-                          border: '1px solid hsl(var(--primary) / 0.3)',
-                          boxShadow: '0 0 20px hsl(var(--primary) / 0.2)',
-                        },
-                      },
-                      error: {
-                        duration: 5000,
-                        iconTheme: {
-                          primary: 'hsl(var(--destructive))',
-                          secondary: 'hsl(var(--destructive-foreground))',
-                        },
-                        style: {
-                          background: 'hsl(var(--card))',
-                          color: 'hsl(var(--card-foreground))',
-                          border: '1px solid hsl(var(--destructive) / 0.3)',
-                          boxShadow: '0 0 20px hsl(var(--destructive) / 0.2)',
-                        },
-                      },
-                      loading: {
-                        iconTheme: {
-                          primary: 'hsl(var(--primary))',
-                          secondary: 'hsl(var(--primary-foreground))',
-                        },
-                        style: {
-                          background: 'hsl(var(--card))',
-                          color: 'hsl(var(--card-foreground))',
-                          border: '1px solid hsl(var(--primary) / 0.3)',
-                          boxShadow: '0 0 20px hsl(var(--primary) / 0.2)',
-                        },
-                      },
-                    }}
-                  />
-                  </div>
+                        <AppContent />
                       </GameProvider>
                     </CodePlaygroundProvider>
                   </ChatProvider>

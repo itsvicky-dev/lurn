@@ -32,13 +32,7 @@ export default defineConfig({
           console.log('✅ netlify.toml file copied to dist/');
         }
 
-        // Copy 404.html file if it exists
-        const notFoundSrc = resolve(__dirname, 'public', '404.html');
-        const notFoundDest = resolve(__dirname, 'dist', '404.html');
-        if (fs.existsSync(notFoundSrc)) {
-          fs.copyFileSync(notFoundSrc, notFoundDest);
-          console.log('✅ 404.html file copied to dist/');
-        }
+
       },
     },
   ],

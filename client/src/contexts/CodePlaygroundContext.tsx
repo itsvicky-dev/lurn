@@ -10,7 +10,7 @@ interface CodePlaygroundContextType {
   supportedLanguages: SupportedLanguage[];
   loading: boolean;
   running: boolean;
-  createPlayground: (language: string) => CodePlayground;
+  createPlayground: (language: string, initialCode?: string) => CodePlayground;
   updatePlayground: (id: string, updates: Partial<CodePlayground>) => void;
   runCode: (id: string) => Promise<void>;
   deletePlayground: (id: string) => void;
@@ -781,7 +781,7 @@ export const CodePlaygroundProvider: React.FC<CodePlaygroundProviderProps> = ({ 
 
   const generateId = () => Math.random().toString(36).substr(2, 9);
 
-  const createPlayground = (language: string): CodePlayground => {
+  const createPlayground = (language: string, initialCode?: string): CodePlayground => {
     const supportedLang = supportedLanguages.find(lang => lang.id === language);
     if (!supportedLang) {
       throw new Error(`Unsupported language: ${language}`);
@@ -792,7 +792,7 @@ export const CodePlaygroundProvider: React.FC<CodePlaygroundProviderProps> = ({ 
       id: generateId(),
       name: `${supportedLang.name} Playground`,
       language,
-      code: supportedLang.defaultCode,
+      code: initialCode !== undefined ? initialCode : supportedLang.defaultCode,
       output: '',
       error: '',
       isRunning: false,

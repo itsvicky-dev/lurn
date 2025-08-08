@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import toast from 'react-hot-toast';
+import { CodePlayground } from '../../types';
 
 // Monaco Editor (we'll need to install this)
 // For now, we'll use a textarea as a placeholder
@@ -75,27 +76,36 @@ const CodePlaygroundPage: React.FC = () => {
 
   const handleCreatePlayground = async (templateType?: string) => {
     try {
-      const playground = createPlayground(selectedLanguage);
+      let initialCode = '';
+      let templateName = 'empty';
       
       // Handle empty playground or load template
       if (!templateType || templateType === 'empty') {
-        // Create empty playground - clear the default code
-        updatePlayground(playground.id, { code: '' });
+        // Create empty playground
+        initialCode = '';
+        templateName = 'empty';
       } else {
         // Load specific template
         try {
           const { template } = await apiService.getCodeTemplate(selectedLanguage, templateType);
-          updatePlayground(playground.id, { code: template });
-          toast.success(`${templateType.charAt(0).toUpperCase() + templateType.slice(1)} template loaded`);
+          initialCode = template;
+          templateName = templateType;
         } catch (error) {
           console.error('Failed to load template:', error);
-          toast.error(`Failed to load ${templateType} template. Using empty playground instead.`);
-          // If template loading fails, clear the code for empty playground
-          updatePlayground(playground.id, { code: '' });
+          toast.error(`Failed to load ${templateType} template. Creating empty playground instead.`);
+          initialCode = '';
+          templateName = 'empty';
         }
       }
       
-      toast.success(`New ${selectedLanguage} playground created`);
+      // Create playground with the correct initial code
+      const playground = createPlayground(selectedLanguage, initialCode);
+      
+      if (templateName === 'empty') {
+        toast.success(`New empty ${selectedLanguage} playground created`);
+      } else {
+        toast.success(`New ${selectedLanguage} playground created with ${templateName} template`);
+      }
     } catch (error: any) {
       toast.error(error.message);
     }

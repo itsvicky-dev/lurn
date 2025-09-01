@@ -51,6 +51,20 @@ const BackgroundTaskIndicator: React.FC = () => {
   const getTaskStatusText = (task: BackgroundTask) => {
     switch (task.status) {
       case 'in-progress':
+        if (task.type === 'onboarding-path') {
+          // Show different messages based on progress for onboarding
+          if (task.progress < 20) {
+            return 'Setting up your account...';
+          } else if (task.progress < 40) {
+            return 'AI analyzing your preferences...';
+          } else if (task.progress < 70) {
+            return 'Generating personalized content...';
+          } else if (task.progress < 90) {
+            return 'Structuring learning paths...';
+          } else {
+            return 'Finalizing setup...';
+          }
+        }
         return `${task.progress}% complete`;
       case 'pending':
         return 'Waiting to start...';

@@ -40,7 +40,7 @@ interface LearningProviderProps {
 }
 
 export const LearningProvider: React.FC<LearningProviderProps> = ({ children }) => {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { addNotification } = useNotifications();
   const [learningPaths, setLearningPaths] = useState<LearningPath[]>([]);
   const [currentPath, setCurrentPath] = useState<LearningPath | null>(null);
@@ -130,7 +130,28 @@ export const LearningProvider: React.FC<LearningProviderProps> = ({ children }) 
       console.log('✅ Learning paths loaded successfully:', processedPaths.length);
     } catch (error: any) {
       console.error('❌ Failed to load learning paths:', error);
-      toast.error('Failed to load learning paths');
+      
+      // Handle specific error cases
+      if (error.response?.status === 401) {
+        console.log('Authentication error while loading learning paths');
+        toast.error('Authentication error. Please log in again.');
+      } else if (error.response?.status === 403) {
+        console.log('Access denied - user may not be properly onboarded');
+        toast.error('Access denied. Please complete onboarding first.');
+        // Try to refresh user data to sync with server
+        refreshUser().catch(console.warn);
+      } else if (error.response?.data?.message?.includes('onboarding')) {
+        console.log('Onboarding required error detected');
+        toast.error('Please complete onboarding to access learning paths.');
+        // Try to refresh user data to sync with server
+        refreshUser().catch(console.warn);
+      } else if (error.code === 'ERR_NETWORK') {
+        toast.error('Network connection issue. Please check your internet connection.');
+      } else {
+        const message = error.response?.data?.message || 'Failed to load learning paths';
+        toast.error(message);
+      }
+      
       setLoadingMessage('');
     } finally {
       setLoading(false);

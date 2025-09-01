@@ -47,6 +47,66 @@ class BackgroundTaskService {
     return `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
+  async createOnboardingTask(subjects: string[], preferences?: any): Promise<string> {
+    const taskId = this.generateTaskId();
+    const task: BackgroundTask = {
+      id: taskId,
+      type: 'onboarding-path',
+      title: `Creating ${subjects.length} learning path${subjects.length > 1 ? 's' : ''} for: ${subjects.join(', ')}`,
+      status: 'in-progress',
+      progress: 0,
+      startTime: Date.now(),
+      source: 'onboarding',
+    };
+
+    this.tasks.set(taskId, task);
+    this.notifyListeners();
+
+    // Start progress simulation for onboarding (longer duration)
+    this.simulateProgress(taskId, 180000); // 3 minutes estimated for onboarding
+
+    return taskId;
+  }
+
+  completeOnboardingTask(taskId: string, pathsCreated: number): void {
+    const task = this.tasks.get(taskId);
+    if (task) {
+      task.status = 'completed';
+      task.progress = 100;
+      task.endTime = Date.now();
+      task.title = `✅ Created ${pathsCreated} learning path${pathsCreated !== 1 ? 's' : ''}`;
+      
+      this.tasks.set(taskId, task);
+      this.notifyListeners();
+
+      // Clear progress interval
+      const interval = this.pollIntervals.get(taskId);
+      if (interval) {
+        clearInterval(interval);
+        this.pollIntervals.delete(taskId);
+      }
+    }
+  }
+
+  failOnboardingTask(taskId: string, errorMessage: string): void {
+    const task = this.tasks.get(taskId);
+    if (task) {
+      task.status = 'failed';
+      task.error = errorMessage;
+      task.endTime = Date.now();
+      
+      this.tasks.set(taskId, task);
+      this.notifyListeners();
+
+      // Clear progress interval
+      const interval = this.pollIntervals.get(taskId);
+      if (interval) {
+        clearInterval(interval);
+        this.pollIntervals.delete(taskId);
+      }
+    }
+  }
+
   async createLearningPathInBackground(subject: string, preferences?: any, source: 'onboarding' | 'manual' | 'enhanced' = 'manual'): Promise<string> {
     const taskId = this.generateTaskId();
     const task: BackgroundTask = {
@@ -63,14 +123,14 @@ class BackgroundTaskService {
     this.notifyListeners();
 
     try {
-      // Show initial toast based on source
-      const toastMessage = source === 'onboarding' 
-        ? `🎯 Queued learning path for "${subject}" from onboarding!`
-        : source === 'enhanced'
-        ? `🚀 Creating enhanced learning path for "${subject}" in the background!`
-        : `🚀 Creating learning path for "${subject}" in the background!`;
-      
-      toast.success(toastMessage);
+      // Show initial toast only for non-onboarding sources (onboarding handles its own progress)
+      if (source !== 'onboarding') {
+        const toastMessage = source === 'enhanced'
+          ? `🚀 Creating enhanced learning path for "${subject}" in the background!`
+          : `🚀 Creating learning path for "${subject}" in the background!`;
+        
+        toast.success(toastMessage);
+      }
       
       // Start progress simulation
       this.simulateProgress(taskId, 120000); // 2 minutes estimated
@@ -94,9 +154,11 @@ class BackgroundTaskService {
         this.pollIntervals.delete(taskId);
       }
 
-      // Show success notification
-      await notificationService.notifyContentReady('learning-path', subject);
-      toast.success(`✅ Learning path "${subject}" is ready!`, { duration: 6000 });
+      // Show success notification only for non-onboarding sources
+      if (source !== 'onboarding') {
+        await notificationService.notifyContentReady('learning-path', subject);
+        toast.success(`✅ Learning path "${subject}" is ready!`, { duration: 6000 });
+      }
 
       // Dispatch custom event to refresh learning paths
       window.dispatchEvent(new CustomEvent('learningPathCreated', { 
@@ -119,7 +181,42 @@ class BackgroundTaskService {
         this.pollIntervals.delete(taskId);
       }
 
-      toast.error(`❌ Failed to create learning path: ${error.message}`);
+      // Provide more user-friendly error messages
+      let errorMessage = error.message;
+      const serverError = error.response?.data?.error || '';
+      
+      // Only show error toasts for non-onboarding sources (onboarding handles its own error display)
+      if (source !== 'onboarding') {
+        if (error.name === 'ContentGenerationError' || serverError.includes('jsonContent is not defined')) {
+          errorMessage = 'AI content generation failed due to a server issue. This has been fixed and should work on retry.';
+          toast.error(`❌ ${errorMessage}`, { 
+            duration: 8000
+          });
+          
+          // Auto-retry after a short delay
+          setTimeout(() => {
+            console.log(`🔄 Auto-retrying learning path creation for ${subject}...`);
+            toast.loading(`🔄 Retrying ${subject} learning path creation...`, { duration: 3000 });
+            this.createLearningPathInBackground(subject, preferences, source)
+              .catch(retryError => {
+                console.error('Retry also failed:', retryError);
+                toast.error(`❌ Retry failed for ${subject}. Please try manually from the learning paths page.`);
+              });
+          }, 5000); // Retry after 5 seconds
+        } else if (serverError.includes('Failed to generate learning path')) {
+          errorMessage = 'AI service is temporarily unavailable. Please try again in a few minutes.';
+          toast.error(`❌ ${errorMessage}`, { duration: 6000 });
+        } else if (error.response?.status === 500) {
+          errorMessage = 'Server error occurred while creating learning path. Please try again later.';
+          toast.error(`❌ ${errorMessage}`, { duration: 6000 });
+        } else if (error.code === 'ERR_NETWORK') {
+          errorMessage = 'Network connection issue. Please check your internet connection and try again.';
+          toast.error(`❌ ${errorMessage}`, { duration: 6000 });
+        } else {
+          toast.error(`❌ Failed to create learning path: ${errorMessage}`);
+        }
+      }
+      
       throw error;
     }
   }

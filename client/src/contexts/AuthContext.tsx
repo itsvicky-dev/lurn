@@ -118,6 +118,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const { user } = await apiService.getCurrentUser();
       setUser(user);
+      console.log('User data refreshed:', { isOnboarded: user.isOnboarded });
     } catch (error) {
       console.error('Failed to refresh user:', error);
     }

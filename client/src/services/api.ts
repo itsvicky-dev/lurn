@@ -129,7 +129,7 @@ class ApiService {
   // User endpoints
   async completeOnboarding(data: OnboardingRequest): Promise<{ user: User; learningPaths: LearningPath[] }> {
     const response = await this.api.post('/user/onboarding', data, {
-      timeout: 120000 // 2 minutes timeout for onboarding
+      timeout: 600000 // 10 minutes timeout for onboarding (includes learning path creation)
     });
     return response.data;
   }
@@ -206,6 +206,20 @@ class ApiService {
           fullURL: `${this.api.defaults.baseURL}/learning/paths`,
           requestData: data
         });
+      }
+      
+      // Enhance error message for specific server errors
+      if (error.response?.status === 500) {
+        const serverError = error.response?.data?.error;
+        if (serverError?.includes('jsonContent is not defined')) {
+          const enhancedError = new Error('Server error: AI content generation failed. Please try again later.');
+          enhancedError.name = 'ContentGenerationError';
+          (enhancedError as any).originalError = error;
+          (enhancedError as any).response = error.response;
+          (enhancedError as any).code = error.code;
+          (enhancedError as any).status = error.response?.status;
+          throw enhancedError;
+        }
       }
       
       throw error;

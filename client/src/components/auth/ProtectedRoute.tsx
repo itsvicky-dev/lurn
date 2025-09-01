@@ -27,6 +27,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   if (requireOnboarding && !user.isOnboarded) {
+    console.log('User not onboarded, redirecting to onboarding:', { 
+      userId: user.id, 
+      isOnboarded: user.isOnboarded 
+    });
     return <Navigate to="/onboarding" replace />;
   }
 

@@ -49,7 +49,7 @@ const LEARNING_FORMATS = [
 ];
 
 const OnboardingPage: React.FC = () => {
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, refreshUser } = useAuth();
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
@@ -138,60 +138,71 @@ const OnboardingPage: React.FC = () => {
         language: formData.language
       };
 
-      // Immediately mark user as onboarded locally to allow navigation
+      // Update user state immediately to allow navigation
       updateUser({ isOnboarded: true });
       
-      // Queue onboarding completion in background (don't wait)
+      // Navigate to dashboard immediately - don't wait for server
+      navigate('/dashboard', { replace: true });
+      
+      // Show immediate welcome message
+      toast.success('🎯 Welcome to your learning journey!', {
+        duration: 3000
+      });
+      
+      // Create a background task for the onboarding process
+      const taskId = await backgroundTaskService.createOnboardingTask(subjects, onboardingData);
+      
+      // Complete onboarding on server in background (this will create learning paths)
       apiService.completeOnboarding(onboardingData)
-        .then(({ user: updatedUser }) => {
+        .then(({ user: updatedUser, learningPaths }) => {
+          // Update with server response when available
           updateUser(updatedUser);
-          console.log('Onboarding completed successfully');
+          console.log('Onboarding completed successfully on server');
+          console.log(`Created ${learningPaths?.length || 0} learning paths during onboarding`);
+          
+          // Mark the background task as completed
+          backgroundTaskService.completeOnboardingTask(taskId, learningPaths?.length || 0);
+          
+          // Show success message
+          toast.success(`✅ Welcome! ${learningPaths?.length || subjects.length} learning paths created successfully!`, {
+            duration: 5000
+          });
         })
         .catch((error) => {
           console.error('Onboarding completion failed:', error);
-          // Show error toast if onboarding fails
-          toast.error('Failed to complete onboarding, but you can continue using the app.');
+          
+          // Mark the background task as failed
+          backgroundTaskService.failOnboardingTask(taskId, error.message);
+          
+          // Revert onboarding status if server call fails
+          updateUser({ isOnboarded: false });
+          toast.error('Onboarding setup failed. Please complete it again from your profile.', {
+            duration: 6000
+          });
         });
       
       // Request notification permission for background tasks (non-blocking)
       notificationService.requestPermission().catch(console.warn);
       
-      // Queue learning path creation for each subject (don't wait for completion)
-      const queuedTasks = [];
-      for (const subject of subjects) {
-        try {
-          // Queue the task without waiting for it to complete
-          backgroundTaskService.createLearningPathInBackground(
-            subject, 
-            onboardingData,
-            'onboarding'
-          ).then((taskId) => {
-            console.log(`Learning path queued for ${subject} with task ID: ${taskId}`);
-          }).catch((error) => {
-            console.error(`Failed to create learning path for ${subject}:`, error);
-          });
-          queuedTasks.push(subject);
-        } catch (error) {
-          console.error(`Failed to queue background task for ${subject}:`, error);
-        }
-      }
-      
-      // Show success messages
-      toast.success('🎉 Welcome to Lurn! Setting up your account...');
-      
-      if (queuedTasks.length > 0) {
-        toast(`🚀 ${queuedTasks.length} learning path${queuedTasks.length > 1 ? 's' : ''} queued for creation. You'll be notified when they're ready!`, {
-          icon: '📋',
-          duration: 2000,
-        });
-      }
-      
-      // Navigate to dashboard immediately
-      navigate('/dashboard', { replace: true });
-      
     } catch (error: any) {
-      console.error('Setup error:', error);
-      toast.error('Failed to start setup process. Please try again.');
+      console.error('Onboarding error:', error);
+      
+      // Provide specific error messages based on the error type
+      if (error.response?.status === 500) {
+        toast.error('Server error during onboarding. Please try again or contact support if the issue persists.');
+      } else if (error.code === 'ERR_NETWORK') {
+        toast.error('Network connection issue. Please check your internet connection and try again.');
+      } else if (error.response?.status === 401) {
+        toast.error('Authentication error. Please log in again.');
+        navigate('/login', { replace: true });
+        return;
+      } else {
+        const message = error.response?.data?.message || error.message || 'Failed to complete onboarding';
+        toast.error(`Onboarding failed: ${message}`);
+      }
+      
+      // Don't update user state if onboarding failed
+      // User will remain on onboarding page to retry
     } finally {
       setIsSubmitting(false);
     }

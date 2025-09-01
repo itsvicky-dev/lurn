@@ -11,35 +11,54 @@ dotenv.config();
 class AIService {
   // Helper function to clean JSON content and remove comments
   cleanJsonContent(content) {
-    let cleaned = content.trim();
-    
-    // Remove markdown code blocks
-    if (cleaned.startsWith('```json')) {
-      cleaned = cleaned.replace(/```json\n?/, '').replace(/\n?```$/, '');
-    } else if (cleaned.startsWith('```')) {
-      cleaned = cleaned.replace(/```\n?/, '').replace(/\n?```$/, '');
+    try {
+      if (!content || typeof content !== 'string') {
+        throw new Error('Invalid content provided to cleanJsonContent');
+      }
+      
+      let cleaned = content.trim();
+      
+      // Remove markdown code blocks
+      if (cleaned.startsWith('```json')) {
+        cleaned = cleaned.replace(/```json\n?/, '').replace(/\n?```$/, '');
+      } else if (cleaned.startsWith('```')) {
+        cleaned = cleaned.replace(/```\n?/, '').replace(/\n?```$/, '');
+      }
+      
+      // Split into lines for more precise comment removal
+      const lines = cleaned.split('\n');
+      const cleanedLines = lines.map(line => {
+        try {
+          // Remove single-line comments, but preserve URLs (http://, https://)
+          // Look for // that's not preceded by : (to avoid breaking URLs)
+          return line.replace(/(?<!:)\/\/(?!\/)[^\n\r]*$/, '').trim();
+        } catch (regexError) {
+          // Fallback: simple comment removal if regex fails
+          const commentIndex = line.indexOf('//');
+          if (commentIndex > 0 && line[commentIndex - 1] !== ':') {
+            return line.substring(0, commentIndex).trim();
+          }
+          return line.trim();
+        }
+      }).filter(line => line.length > 0); // Remove empty lines
+      
+      cleaned = cleanedLines.join('\n');
+      
+      // Remove multi-line comments (/* comment */)
+      cleaned = cleaned.replace(/\/\*[\s\S]*?\*\//g, '');
+      
+      // Clean up trailing commas before closing brackets/braces
+      cleaned = cleaned.replace(/,(\s*[\n\r]*\s*[}\]])/g, '$1');
+      
+      // Normalize whitespace but preserve JSON structure
+      cleaned = cleaned.replace(/\s+/g, ' ').trim();
+      
+      return cleaned;
+    } catch (error) {
+      console.error('Error in cleanJsonContent:', error.message);
+      // Return the original content if cleaning fails
+      return content ? content.trim() : '';
     }
-    
-    // Split into lines for more precise comment removal
-    const lines = cleaned.split('\n');
-    const cleanedLines = lines.map(line => {
-      // Remove single-line comments, but preserve URLs (http://, https://)
-      // Look for // that's not preceded by : (to avoid breaking URLs)
-      return line.replace(/(?<!:)\/\/(?!\/)[^\n\r]*$/, '').trim();
-    }).filter(line => line.length > 0); // Remove empty lines
-    
-    cleaned = cleanedLines.join('\n');
-    
-    // Remove multi-line comments (/* comment */)
-    cleaned = cleaned.replace(/\/\*[\s\S]*?\*\//g, '');
-    
-    // Clean up trailing commas before closing brackets/braces
-    cleaned = cleaned.replace(/,(\s*[\n\r]*\s*[}\]])/g, '$1');
-    
-    // Normalize whitespace but preserve JSON structure
-    cleaned = cleaned.replace(/\s+/g, ' ').trim();
-    
-    return cleaned;
   }
 
   constructor() {
@@ -441,9 +460,19 @@ CRITICAL REQUIREMENTS:
 
     console.log(`📝 AI response received (${response.content.length} characters)`);
     
+    let jsonContent = null;
     try {
+      // Validate response content exists
+      if (!response || !response.content || typeof response.content !== 'string') {
+        throw new Error('Invalid or empty AI response content');
+      }
+      
       // Clean the response to ensure valid JSON
-      const jsonContent = this.cleanJsonContent(response.content);
+      jsonContent = this.cleanJsonContent(response.content);
+      
+      if (!jsonContent || jsonContent.length === 0) {
+        throw new Error('Cleaned JSON content is empty');
+      }
       
       console.log('🧹 Cleaned JSON content (first 200 chars):', jsonContent.substring(0, 200) + '...');
       
